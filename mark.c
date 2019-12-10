@@ -8,16 +8,50 @@
 
 #include <mkdio.h>
 #include "stack.h"
+#include "config.h"
 
-void find_files(DIR *src, DIR *dst);
+void find_files(const char *src_path);
 void usage(void);
 
 static Stack dir_list;
 static Stack md_list;
 
-void find_files(DIR *src, DIR *dst)
+void find_files(const char *src_path)
 {
-        
+        DIR *src = opendir(src_path);
+        if (!src) {
+                fprintf(stderr, "Cannot open directory '%s': %s", src_path, strerror(errno));
+                exit(errno);
+        }
+
+        for (;;) {
+                struct dirent *entry;
+                char path[PATH_MAX];
+
+                if(!(entry = readdir(src)))
+                   break;
+
+
+                if (strstr(entry->d_name, ".md") != NULL) {
+                        snprintf(path, PATH_MAX, "%s/%s", src_path, entry->d_name);
+                        push(&md_list, path);
+                }
+
+                if (entry->d_type & DT_DIR) {
+                        if (strcmp(entry->d_name, "..") != 0 &&
+                            strcmp(entry->d_name, ".") != 0  &&
+                            strcmp(entry->d_name, assets_folder) != 0) {
+                                snprintf(path, PATH_MAX, "%s/%s", src_path, entry->d_name);
+                                push(&dir_list, path);
+                                find_files(path);
+                        }
+                }
+        }
+
+        if (closedir(src)) {
+                fprintf(stderr, "Cannot close directory '%s': %s", src_path, strerror(errno));
+                exit(errno);
+        }
 }
 
 int
@@ -26,20 +60,16 @@ main(int argc, char *argv[])
         if (argc < 3)
                 usage();
 
-        DIR *src = opendir(argv[1]);
         DIR *dst = opendir(argv[2]);
 
-        if (!src) {
-                fprintf(stderr, "Cannot open directory '%s': %s", argv[1], strerror(errno));
-                exit(errno);
-        }
+        const char *src_path = argv[1];
+
+        find_files(src_path);
 
         if (!dst) {
                 fprintf(stderr, "Cannot open directory '%s': %s", argv[2], strerror(errno));
                 exit(errno);
         }
-
-        find_files(src, dst);
 
         FILE *fd = fopen("test.md", "r");
         FILE *out = fopen("out.html", "w");
