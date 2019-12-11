@@ -16,12 +16,14 @@
 #define D_NAME entry->d_name
 
 void find_files(const char *src_path);
-void make_dirs(Stack *dir_list);
-void render_md(Stack *md_list);
+void make_dirs(void);
+void copy_files(void);
+void render_md(void);
 void usage(void);
 
 static Stack *dir_list;
 static Stack *md_list;
+static Stack *file_list;
 
 static void
 dir_err(const char *path)
@@ -60,7 +62,7 @@ retrieve_title(FILE *in)
         size_t linecap = 0;
         getline(&line, &linecap, in);
 
-        if (line && line[0] == '#') {
+        if (line && strlen(line) >= 3 && line[0] == '#') {
                 line += 2; /* Remove the '#' and the space after it */
                 line[strlen(line) - 1] = 0; /* Remove trailing newline */
         } else {
@@ -69,6 +71,18 @@ retrieve_title(FILE *in)
 
         rewind(in);
         return line;
+}
+
+static char*
+mk_dst_path(const char *path)
+{
+        char ret[PATH_MAX];
+        size_t namelen = strlen(src_dir);
+
+        path += namelen;
+        snprintf(ret, PATH_MAX, "%s%s", dst_dir, path);
+
+        return ret;
 }
 
 void find_files(const char *src_path)
@@ -88,19 +102,20 @@ void find_files(const char *src_path)
                         D_NAME[strlen(D_NAME) - 3] = 0; /* Remove the extention */
                         snprintf(path, PATH_MAX, "%s/%s.md", src_path, D_NAME);
                         push(md_list, path);
-                        snprintf(path, PATH_MAX, "%s/%s.html", dst_dir, D_NAME);
+                        snprintf(path, PATH_MAX, "%s/%s.html", mk_dst_path(src_path), D_NAME);
                         push(md_list, path);
-                }
-
-                if (entry->d_type & DT_DIR) {
+                } else if (entry->d_type & DT_DIR) {
                         if (strcmp(D_NAME, "..") != 0 &&
-                            strcmp(D_NAME, ".") != 0  &&
-                            strcmp(D_NAME, assets_folder) != 0) {
-                                snprintf(path, PATH_MAX, "%s/%s", dst_dir, D_NAME);
+                            strcmp(D_NAME, ".") != 0) {
+                                snprintf(path, PATH_MAX, "%s/%s", mk_dst_path(src_path), D_NAME);
                                 push(dir_list, path);
                                 snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
                                 find_files(path);
                         }
+                } else if (strcmp(D_NAME, footer_file) != 0 &&
+                           strcmp(D_NAME, header_file) != 0) {
+                        snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
+                        push(file_list, path);
                 }
         }
 
@@ -111,7 +126,7 @@ void find_files(const char *src_path)
 }
 
 void
-make_dirs(Stack *dir_list)
+make_dirs(void)
 {
         const char *path;
         mode_t default_mode = umask(0);
@@ -133,7 +148,7 @@ make_dirs(Stack *dir_list)
 }
 
 void
-render_md(Stack *md_list)
+render_md(void)
 {
         FILE *header = fopen(header_file, "r");
         FILE *footer = fopen(footer_file, "r");
@@ -168,10 +183,28 @@ render_md(Stack *md_list)
 }
 
 void
+copy_files(void)
+{
+        while (!is_empty(file_list)) {
+                const char *path = pop(file_list);
+                FILE *orig = fopen(path, "r");
+                FILE *new = fopen(mk_dst_path(path), "w");
+
+                if (!orig)
+                        file_err(path);
+                if (!new)
+                        file_err(mk_dst_path(path));
+
+                file_cpy(orig, new);
+        }
+}
+
+void
 usage(void)
 {
-        char *usage_str = "swege 0.1\n\
-Before using swege, edit config.h with values for your website.\n";
+        char *usage_str = "swege 0.2\n\
+By default, swege reads markdown files from the 'src' directory and renders\n\
+them as HTML to the 'site' directory, copying over any non-markdown files.\n";
         fprintf(stderr, "%s", usage_str);
         exit(errno);
 }
@@ -184,11 +217,14 @@ main(int argc, char *argv[])
 
         dir_list = new_stack();
         md_list = new_stack();
+        file_list = new_stack();
 
         find_files(src_dir);
-        make_dirs(dir_list);
-        render_md(md_list);
+        make_dirs();
+        copy_files();
+        render_md();
 
         free_stack(dir_list);
         free_stack(md_list);
+        free_stack(file_list);
 }
