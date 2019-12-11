@@ -17,22 +17,24 @@ INCLUDES = -I/usr/local/include
 LIBS = -L/usr/local/lib -lmarkdown
 
 PROJECT = swege
-TESTARGS = src dst Test
 
 all:
 	$(CC) $(CFLAGS) $(INCLUDES) $(LIBS) *.c -o $(PROJECT)
 
 debug: all
-	gdb --args $(PROJECT) $(TESTARGS)
+	gdb $(PROJECT)
 
 memcheck: all
-	valgrind --leak-check=yes ./$(PROJECT) $(TESTARGS)
+	valgrind --leak-check=yes ./$(PROJECT)
 
 memcheck_v: all
-	valgrind --leak-check=yes -v ./$(PROJECT) $(TESTARGS)
+	valgrind --leak-check=yes -v ./$(PROJECT)
 
 clean:
 	rm $(PROJECT)
 
 install:
 	cp $(PROJECT) $(DESTDIR)/$(PREFIX)/bin/$(PROJECT)
+
+site:
+	./$(PROJECT)
