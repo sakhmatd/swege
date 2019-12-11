@@ -12,27 +12,33 @@
 #include "stack.h"
 #include "config.h"
 
-#define BUF_SIZE 1048576
+#define BUF_SIZE 3145728
 #define D_NAME entry->d_name
 
-void find_files(const char *src_path);
-void make_dirs(void);
-void copy_files(void);
-void render_md(void);
-void usage(void);
+static void find_files(const char *src_path);
+static void copy_files(void);
+static void render_md(void);
+static void usage(void);
+static void dir_err(const char *path);
+static void file_err(const char *path);
+static void file_cpy(FILE *in, FILE *out);
+static char* retrieve_title(FILE *in);
+static char* mk_dst_path(const char *path);
+static void find_files(const char *src_path);
+static void render_md(void);
+static void copy_files(void);
 
-static Stack *dir_list;
-static Stack *md_list;
-static Stack *file_list;
+static Stack *md_stack;
+static Stack *file_stack;
 
-static void
+void
 dir_err(const char *path)
 {
         fprintf(stderr, "Cannot open directory '%s': %s\n", path, strerror(errno));
         usage();
 }
 
-static void
+void
 file_err(const char *path)
 {
         fprintf(stderr, "Cannot access file '%s': %s\n", path, strerror(errno));
@@ -44,7 +50,7 @@ file_err(const char *path)
  * Not the fastest way to do it, there is overhead in moving
  * from user to kern space, but portable.
  **/
-static void
+void
 file_cpy(FILE *in, FILE *out)
 {
         char buf[BUF_SIZE];
@@ -55,7 +61,7 @@ file_cpy(FILE *in, FILE *out)
                 fwrite(buf, 1, bytes, out);
 }
 
-static char*
+char*
 retrieve_title(FILE *in)
 {
         char *line = NULL;
@@ -73,10 +79,10 @@ retrieve_title(FILE *in)
         return line;
 }
 
-static char*
+char*
 mk_dst_path(const char *path)
 {
-        char ret[PATH_MAX];
+        static char ret[PATH_MAX];
         size_t namelen = strlen(src_dir);
 
         path += namelen;
@@ -85,7 +91,8 @@ mk_dst_path(const char *path)
         return ret;
 }
 
-void find_files(const char *src_path)
+void
+find_files(const char *src_path)
 {
         DIR *src = opendir(src_path);
         if (!src)
@@ -98,24 +105,26 @@ void find_files(const char *src_path)
                 if(!(entry = readdir(src)))
                    break;
 
-                if (strstr(D_NAME, ".md") != NULL) {
+                if (strstr(D_NAME, ".md")) {
                         D_NAME[strlen(D_NAME) - 3] = 0; /* Remove the extention */
                         snprintf(path, PATH_MAX, "%s/%s.md", src_path, D_NAME);
-                        push(md_list, path);
+                        push(md_stack, path);
                         snprintf(path, PATH_MAX, "%s/%s.html", mk_dst_path(src_path), D_NAME);
-                        push(md_list, path);
+                        push(md_stack, path);
                 } else if (entry->d_type & DT_DIR) {
                         if (strcmp(D_NAME, "..") != 0 &&
                             strcmp(D_NAME, ".") != 0) {
+                                mode_t default_mode = umask(0);
                                 snprintf(path, PATH_MAX, "%s/%s", mk_dst_path(src_path), D_NAME);
-                                push(dir_list, path);
+                                mkdir(path, 0755);
+                                umask(default_mode);
                                 snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
                                 find_files(path);
                         }
-                } else if (strcmp(D_NAME, footer_file) != 0 &&
-                           strcmp(D_NAME, header_file) != 0) {
+                } else if (!strstr(footer_file, D_NAME) &&
+                           !strstr(header_file, D_NAME) ) {
                         snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
-                        push(file_list, path);
+                        push(file_stack, path);
                 }
         }
 
@@ -126,36 +135,14 @@ void find_files(const char *src_path)
 }
 
 void
-make_dirs(void)
-{
-        const char *path;
-        mode_t default_mode = umask(0);
-
-        /* Check if destination directory exists and create it if it doesn't. */
-        DIR *dptr;
-        if ((dptr = opendir(dst_dir)))
-                closedir(dptr);
-        else {
-                mkdir(dst_dir, 0755);
-        }
-
-        while (!is_empty(dir_list)) {
-                path = pop(dir_list);
-                mkdir(path, 0755);
-        }
-
-        umask(default_mode);
-}
-
-void
 render_md(void)
 {
         FILE *header = fopen(header_file, "r");
         FILE *footer = fopen(footer_file, "r");
 
-        while (!is_empty(md_list)) {
-                const char *dst_path = pop(md_list);
-                const char *path = pop(md_list);
+        while (!is_empty(md_stack)) {
+                const char *dst_path = pop(md_stack);
+                const char *path = pop(md_stack);
                 const char *page_title;
                 FILE *fd = fopen(path, "r");
                 FILE *out = fopen(dst_path, "w");
@@ -185,8 +172,8 @@ render_md(void)
 void
 copy_files(void)
 {
-        while (!is_empty(file_list)) {
-                const char *path = pop(file_list);
+        while (!is_empty(file_stack)) {
+                const char *path = pop(file_stack);
                 FILE *orig = fopen(path, "r");
                 FILE *new = fopen(mk_dst_path(path), "w");
 
@@ -215,16 +202,23 @@ main(int argc, char *argv[])
         if (argc >= 2)
                 usage();
 
-        dir_list = new_stack();
-        md_list = new_stack();
-        file_list = new_stack();
+        md_stack = new_stack();
+        file_stack = new_stack();
+
+        /* Check if destination directory exists and create it if it doesn't. */
+        mode_t default_mode = umask(0);
+        DIR *dptr;
+        if ((dptr = opendir(dst_dir)))
+                closedir(dptr);
+        else {
+                mkdir(dst_dir, 0755);
+        }
+        umask(default_mode);
 
         find_files(src_dir);
-        make_dirs();
         copy_files();
         render_md();
 
-        free_stack(dir_list);
-        free_stack(md_list);
-        free_stack(file_list);
+        free_stack(md_stack);
+        free_stack(file_stack);
 }

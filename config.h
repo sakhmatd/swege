@@ -6,5 +6,3 @@ static char *dst_dir       = "site";
 
 static char *header_file   = "src/_header.html";
 static char *footer_file   = "src/_footer.html";
-
-static char *assets_folder = "assets";
