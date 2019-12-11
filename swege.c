@@ -53,6 +53,24 @@ file_cpy(FILE *in, FILE *out)
                 fwrite(buf, 1, bytes, out);
 }
 
+static char*
+retrieve_title(FILE *in)
+{
+        char *line = NULL;
+        size_t linecap = 0;
+        getline(&line, &linecap, in);
+
+        if (line && line[0] == '#') {
+                line += 2; /* Remove the '#' and the space after it */
+                line[strlen(line) - 1] = 0; /* Remove trailing newline */
+        } else {
+                line = NULL;
+        }
+
+        rewind(in);
+        return line;
+}
+
 void find_files(const char *src_path)
 {
         DIR *src = opendir(src_path);
@@ -106,7 +124,7 @@ make_dirs(Stack *dir_list)
                 mkdir(dst_dir, 0755);
         }
 
-        while (dir_list->head != NULL) {
+        while (!is_empty(dir_list)) {
                 path = pop(dir_list);
                 mkdir(path, 0755);
         }
@@ -120,9 +138,10 @@ render_md(Stack *md_list)
         FILE *header = fopen(header_file, "r");
         FILE *footer = fopen(footer_file, "r");
 
-        while (md_list->head != NULL) {
+        while (!is_empty(md_list)) {
                 const char *dst_path = pop(md_list);
                 const char *path = pop(md_list);
+                const char *page_title;
                 FILE *fd = fopen(path, "r");
                 FILE *out = fopen(dst_path, "w");
 
@@ -132,7 +151,11 @@ render_md(Stack *md_list)
                         file_err(dst_path);
 
                 file_cpy(header, out);
-                fprintf(out, "<title>%s</title>\n", site_title);
+
+                if ((page_title = retrieve_title(fd)))
+                        fprintf(out, "<title>%s - %s<title>\n", page_title, site_title);
+                else
+                        fprintf(out, "<title>%s</title>\n", site_title);
 
                 MMIOT *md = mkd_in(fd, 0);
                 markdown(md, out, 0);
@@ -156,7 +179,7 @@ Before using swege, edit config.h with values for your website.\n";
 int
 main(int argc, char *argv[])
 {
-        if (argc == 2)
+        if (argc >= 2)
                 usage();
 
         dir_list = new_stack();

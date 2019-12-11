@@ -9,6 +9,9 @@ typedef struct Stack {
 
 Stack* new_stack(void);
 void free_stack(Stack *stack);
-char* pop(Stack *stack);
+
 char* top(Stack *stack);
+int is_empty(Stack *stack);
+
+char* pop(Stack *stack);
 void push(Stack *stack, char *data);

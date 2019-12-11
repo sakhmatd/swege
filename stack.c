@@ -86,3 +86,9 @@ top(Stack *stack)
 {
         return stack->head->data;
 }
+
+int
+is_empty(Stack *stack)
+{
+        return (stack->head == NULL);
+}
