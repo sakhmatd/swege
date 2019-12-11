@@ -22,13 +22,18 @@ void usage(void);
 static Stack *dir_list;
 static Stack *md_list;
 
+static void
+dir_err(const char *path)
+{
+        fprintf(stderr, "Cannot open directory '%s': %s\n", path, strerror(errno));
+        exit(errno);
+}
+
 void find_files(const char *src_path, const char *dst_path)
 {
         DIR *src = opendir(src_path);
-        if (!src) {
-                fprintf(stderr, "Cannot open directory '%s': %s\n", src_path, strerror(errno));
-                exit(errno);
-        }
+        if (!src)
+                dir_err(src_path);
 
         for (;;) {
                 struct dirent *entry;
@@ -81,7 +86,7 @@ render_md(Stack *md_list)
                 const char *dst_path = pop(md_list);
                 const char *path = pop(md_list);
                 FILE *fd = fopen(path, "r");
-                FILE *out = fopen(dst_path, "a");
+                FILE *out = fopen(dst_path, "w");
 
                 MMIOT *md = mkd_in(fd, 0);
                 markdown(md, out, 0);
@@ -107,18 +112,24 @@ main(int argc, char *argv[])
         const char *src_path = argv[1];
         const char *dst_path = argv[2];
 
-        md_list = malloc(sizeof(Stack));
-        dir_list = malloc(sizeof(Stack));
+        DIR *dptr;
+        if ((dptr = opendir(src_path)) != NULL)
+                closedir(dptr);
+        else
+                dir_err(src_path);
 
-        md_list->head = NULL;
-        dir_list->head = NULL;
-        //new_stack(dir_list);
-        //new_stack(md_list);
+        if ((dptr = opendir(dst_path)) != NULL)
+                closedir(dptr);
+        else
+                dir_err(dst_path);
+
+        dir_list = new_stack();
+        md_list = new_stack();
 
         find_files(src_path, dst_path);
         make_dirs(dir_list);
         render_md(md_list);
 
-        free(dir_list);
-        free(md_list);
+        free_stack(dir_list);
+        free_stack(md_list);
 }

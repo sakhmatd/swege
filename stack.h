@@ -7,7 +7,7 @@ typedef struct Stack {
         Node *head;
 } Stack;
 
-void new_stack(Stack *stack);
+Stack* new_stack(void);
 void free_stack(Stack *stack);
 char* pop(Stack *stack);
 char* top(Stack *stack);
