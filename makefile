@@ -11,7 +11,6 @@ CFLAGS += -Wswitch-default
 CFLAGS += -Wstrict-prototypes
 CFLAGS += -Wundef
 
-CFLAGS += -D_POSIX_C_SOURCE=200809L
 CFLAGS += -D_DEFAULT_SOURCE
 
 PREFIX = /usr/local
