@@ -3,7 +3,6 @@ CC = cc
 CFLAGS  = -std=c99
 CFLAGS += -g
 CFLAGS += -pedantic
-CFLAGS += -Werror
 CFLAGS += -Wall
 CFLAGS += -Wextra
 CFLAGS += -Wcast-align

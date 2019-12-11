@@ -8,6 +8,7 @@ typedef struct Stack {
 } Stack;
 
 void new_stack(Stack *stack);
+void free_stack(Stack *stack);
 char* pop(Stack *stack);
 char* top(Stack *stack);
 void push(Stack *stack, char *data);

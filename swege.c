@@ -4,12 +4,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <mkdio.h>
 #include "stack.h"
 #include "config.h"
+
+#define D_NAME entry->d_name
 
 void find_files(const char *src_path, const char *dst_path);
 void make_dirs(Stack *dir_list);
@@ -34,20 +37,21 @@ void find_files(const char *src_path, const char *dst_path)
                 if(!(entry = readdir(src)))
                    break;
 
-                if (strstr(entry->d_name, ".md") != NULL) {
-                        snprintf(path, PATH_MAX, "%s/%s", src_path, entry->d_name);
+                if (strstr(D_NAME, ".md") != NULL) {
+                        D_NAME[strlen(D_NAME) - 3] = 0; /* Remove the extention */
+                        snprintf(path, PATH_MAX, "%s/%s.md", src_path, D_NAME);
                         push(md_list, path);
-                        snprintf(path, PATH_MAX, "%s/%s.html", dst_path, entry->d_name);
+                        snprintf(path, PATH_MAX, "%s/%s.html", dst_path, D_NAME);
                         push(md_list, path);
                 }
 
                 if (entry->d_type & DT_DIR) {
-                        if (strcmp(entry->d_name, "..") != 0 &&
-                            strcmp(entry->d_name, ".") != 0  &&
-                            strcmp(entry->d_name, assets_folder) != 0) {
-                                snprintf(path, PATH_MAX, "%s/%s", dst_path, entry->d_name);
+                        if (strcmp(D_NAME, "..") != 0 &&
+                            strcmp(D_NAME, ".") != 0  &&
+                            strcmp(D_NAME, assets_folder) != 0) {
+                                snprintf(path, PATH_MAX, "%s/%s", dst_path, D_NAME);
                                 push(dir_list, path);
-                                snprintf(path, PATH_MAX, "%s/%s", src_path, entry->d_name);
+                                snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
                                 find_files(path, dst_path);
                         }
                 }
@@ -63,6 +67,7 @@ void
 make_dirs(Stack *dir_list)
 {
         const char *path;
+
         while (dir_list->head != NULL) {
                 path = pop(dir_list);
                 mkdir(path, DEFFILEMODE);
@@ -73,8 +78,8 @@ void
 render_md(Stack *md_list)
 {
         while (md_list->head != NULL) {
-                const char *path = pop(md_list);
                 const char *dst_path = pop(md_list);
+                const char *path = pop(md_list);
                 FILE *fd = fopen(path, "r");
                 FILE *out = fopen(dst_path, "a");
 

@@ -16,6 +16,8 @@ free_stack(Stack *stack)
         while (stack->head != NULL) {
                 pop(stack);
         }
+
+        free(stack);
 }
 
 void
