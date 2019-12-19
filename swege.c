@@ -9,7 +9,6 @@
 #include <stdlib.h>
 
 #include <mkdio.h>
-#include "stack.h"
 #include "config.h"
 
 #define BUF_SIZE 3145728
@@ -197,6 +196,7 @@ them as HTML to the 'site' directory, copying over any non-markdown files.\n";
 int
 main(int argc, char *argv[])
 {
+        (void)argv; /* Suppress compiler warning about unused argv */
         if (argc >= 2)
                 usage();
 
