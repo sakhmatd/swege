@@ -27,6 +27,10 @@ Contains many parts from rlutil by Tapio Vierros licensed under WTFPLv2.
 # CREDITS
 Many thanks to David Parsons for the Discount library.
 
+# BUGS/TODO
+* Currently, swege rebuilds the website every time you run it. Would be nice to
+  generate a manifest of built files so as to know which files to update.
+
 # CONTRIBUTING
 Contributions are welcome no matter who you are and where you come from.
 

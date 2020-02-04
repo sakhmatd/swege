@@ -34,7 +34,7 @@ clean:
 	rm $(PROJECT)
 
 install:
-	cp $(PROJECT) $(DESTDIR)/$(PREFIX)/bin/$(PROJECT)
+	cp $(PROJECT) $(PREFIX)/bin/$(PROJECT)
 
 site:
 	./$(PROJECT)
