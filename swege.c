@@ -160,7 +160,7 @@ render_md(char *path)
 
         const char *page_title;
         if ((page_title = retrieve_title(fd)))
-                fprintf(out, "<title>%s - %s<title>\n", page_title, site_title);
+                fprintf(out, "<title>%s - %s</title>\n", page_title, site_title);
         else
                 fprintf(out, "<title>%s</title>\n", site_title);
 
