@@ -147,6 +147,12 @@ render_md(char *path)
 
         if (!fd)
                 file_err(path);
+        if (!header)
+                file_err(header_file);
+
+        if (!footer)
+                file_err(footer_file);
+
 
         path[strlen(path) - 3] = 0; /* Remove the extention */
         snprintf(path, PATH_MAX, "%s.html", mk_dst_path(path));
