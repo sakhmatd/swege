@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <utime.h>
 #include <string.h>
 #include <libgen.h>
 #include <stdio.h>
@@ -37,7 +38,14 @@ static char* retrieve_title(FILE *in);
 static char* mk_dst_path(const char *path);
 static void render_md(char *path);
 static void copy_file(const char *path);
+static void log_file(const char *path);
 static void make_dir(const char *path);
+static long file_exists(const char *src_path);
+static int path_in_manifest(const char *src_path);
+static int file_is_newer(const char *src_path);
+
+static FILE *manifest;
+static long manifest_time = 0;
 
 void
 dir_err(const char *path)
@@ -78,7 +86,7 @@ retrieve_title(FILE *in)
 
         if (line && strlen(line) >= 3 && line[0] == '#') {
                 line += 2; /* Remove the '#' and the space after it */
-                line[strlen(line) - 1] = 0; /* Remove trailing newline */
+                line[strcspn(line, "\n")] = 0; /* Remove trailing newline */
         } else {
                 line = NULL;
         }
@@ -100,6 +108,70 @@ mk_dst_path(const char *path)
 }
 
 void
+log_file(const char *src_path)
+{
+        fprintf(manifest, "%s\n", src_path);
+}
+
+long
+file_exists(const char *src_path)
+{
+        struct stat file_stat;
+        if (stat(src_path, &file_stat) == 0)
+                return file_stat.st_mtim.tv_sec;
+
+        return 0;
+}
+
+int
+dir_exists(const char *src_path)
+{
+        DIR *dptr;
+        if ((dptr = opendir(src_path))) {
+                closedir(dptr);
+                return 1;
+        }
+
+        return 0;
+}
+
+int
+path_in_manifest(const char *src_path)
+{
+        char *line = NULL;
+        size_t len;
+        int read;
+
+        /* Edge case if .manifest was deleted */
+        if (manifest_time == 0) {
+                return 0;
+        }
+
+        rewind(manifest);
+
+        while ((read = getline(&line, &len, manifest)) != -1) {
+                line[strcspn(line, "\n")] = 0;
+                if (!strcmp(line, src_path))
+                        return 1;
+        }
+
+        return 0;
+}
+
+int
+file_is_newer(const char *src_path)
+{
+        struct stat src_stats;
+
+        stat(src_path, &src_stats);
+
+        if (src_stats.st_mtim.tv_sec > manifest_time)
+                return 1;
+
+        return 0;
+}
+
+void
 find_files(const char *src_path)
 {
         DIR *src = opendir(src_path);
@@ -115,19 +187,44 @@ find_files(const char *src_path)
 
                 if (strstr(D_NAME, ".md")) {
                         snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
-                        render_md(path);
+                        if (path_in_manifest(path)) {
+                                if (file_is_newer(path)) {
+                                        printf("%s\n", path);
+                                        render_md(path);
+                                }
+                        } else {
+                                log_file(path);
+                                printf("%s\n", path);
+                                render_md(path);
+                        }
                 } else if (entry->d_type & DT_DIR) {
                         if (strcmp(D_NAME, "..") != 0 &&
                             strcmp(D_NAME, ".") != 0) {
-                                snprintf(path, PATH_MAX, "%s/%s", mk_dst_path(src_path), D_NAME);
-                                make_dir(path);
                                 snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
-                                find_files(path);
+                                if (path_in_manifest(path)) {
+                                        snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
+                                        find_files(path);
+                                } else {
+                                        make_dir(mk_dst_path(path));
+                                        snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
+                                        log_file(path);
+                                        printf("%s\n", path);
+                                        find_files(path);
+                                }
                         }
                 } else if (!strstr(footer_file, D_NAME) &&
                            !strstr(header_file, D_NAME) ) {
                         snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
-                        copy_file(path);
+                        if (path_in_manifest(path)) {
+                                if (file_is_newer(path)) {
+                                        printf("%s\n", path);
+                                        copy_file(path);
+                                }
+                        } else {
+                                log_file(path);
+                                printf("%s\n", path);
+                                copy_file(path);
+                        }
                 }
         }
 
@@ -206,7 +303,7 @@ copy_file(const char *path)
 void
 usage(void)
 {
-        char *usage_str = "swege 0.2\n\
+        char *usage_str = "swege 0.4\n\
 By default, swege reads markdown files from the 'src' directory and renders\n\
 them as HTML to the 'site' directory, copying over any non-markdown files.\n";
         fprintf(stderr, "%s", usage_str);
@@ -222,13 +319,20 @@ main(int argc, char *argv[])
 
         /* Check if destination directory exists and create it if it doesn't. */
         mode_t default_mode = umask(0);
-        DIR *dptr;
-        if ((dptr = opendir(dst_dir)))
-                closedir(dptr);
-        else {
+        if (!dir_exists(dst_dir))
                 mkdir(dst_dir, 0755);
-        }
         umask(default_mode);
 
+        /* mtime gets updated with fopen, so we need to save previous mtime */
+        /* File exists returns current mtime of the file or 0 if it doesn't exist */
+        manifest_time = file_exists(".manifest");
+        if (manifest_time) {
+                manifest = fopen(".manifest", "a+");
+        } else {
+                manifest = fopen(".manifest", "w+");
+        }
+
         find_files(src_dir);
+
+        fclose(manifest);
 }

@@ -4,6 +4,13 @@ swege is a Static WEbsite GEnerator written in C.
 It leverages the [discount](http://www.pell.portland.or.us/~orc/Code/discount/)
 library for generating a website from a set of Markdown files.
 
+# FEATURES
+* Under 300 lines of C.
+* Incremental updates.
+* Pretty fast!
+* Almost no dependencies except for discount.
+* Portable-ish (*nix at least).
+
 # QUICK START
 Edit config.h with appropriate values for your website. Then, simply run
 swege outside of your website's source directory.
@@ -28,8 +35,10 @@ Contains many parts from rlutil by Tapio Vierros licensed under WTFPLv2.
 Many thanks to David Parsons for the Discount library.
 
 # BUGS/TODO
-* Currently, swege rebuilds the website every time you run it. Would be nice to
-  generate a manifest of built files so as to know which files to update.
+* Add support for ini files. (ini.h?)
+* Add a way to generate a skeleton website with a command (swege new?)
+* Better documentation.
+* Windows support?
 
 # CONTRIBUTING
 Contributions are welcome no matter who you are and where you come from.
