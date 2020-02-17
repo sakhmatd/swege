@@ -1,4 +1,4 @@
-/* Copyright 2019 Sergei Akhmatdinov                                         */
+/* Copyright 2020 Sergei Akhmatdinov                                         */
 /*                                                                           */
 /* Licensed under the Apache License, Version 2.0 (the "License");           */
 /* you may not use this file except in compliance with the License.          */
@@ -17,7 +17,6 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <utime.h>
 #include <string.h>
 #include <libgen.h>
 #include <stdio.h>
@@ -184,6 +183,10 @@ find_files(const char *src_path)
 
                 if(!(entry = readdir(src)))
                    break;
+
+                /* Ignore emacs/vim autosave files */
+                if(strstr(D_NAME, "~") || strstr(D_NAME, "#"))
+                        continue;
 
                 if (strstr(D_NAME, ".md")) {
                         snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
