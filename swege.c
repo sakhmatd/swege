@@ -12,6 +12,7 @@
 /* See the License for the specific language governing permissions and       */
 /* limitations under the License. */
 
+/* Includes */
 #include <limits.h>
 #include <dirent.h>
 #include <errno.h>
@@ -23,41 +24,80 @@
 #include <stdlib.h>
 
 #include <mkdio.h>
-#include "config.h"
+#include "ini.h"
 
+/* Constants and Macros */
 #define BUF_SIZE 3145728
 #define D_NAME entry->d_name
 
-static void find_files(const char *src_path);
+#define MANIFESTF ".manifest"
+
+#define INISECTION "swege"
+#define INIFILE "swege.ini"
+
+/* Simplify read_config() */
+#define MATCH(n) strcmp(section, INISECTION) == 0 && strcmp(name, n) == 0
+
+/* Typedefs */
+typedef struct
+{
+        char *site_title;
+
+        char *src_dir;
+        char *dst_dir;
+
+        char *header_file;
+        char *footer_file;
+} Config;
+
+/* Prototypes */
 static void usage(void);
 static void dir_err(const char *path);
 static void file_err(const char *path);
+
 static void stream_file(FILE *in, FILE *out);
-static char* retrieve_title(FILE *in);
-static char* mk_dst_path(const char *path);
-static void render_md(char *path);
 static void copy_file(const char *path);
 static void log_file(const char *path);
 static void make_dir(const char *path);
-static long file_exists(const char *src_path);
-static int path_in_manifest(const char *src_path);
-static int file_is_newer(const char *src_path);
 
+static long file_exists(const char *src_path);
+static int dir_exists(const char *src_path);
+static int file_is_newer(const char *src_path);
+static int path_in_manifest(const char *src_path);
+
+static char* retrieve_title(FILE *in);
+static char* mk_dst_path(const char *path);
+
+static void find_files(const char *src_path);
+static void render_md(char *path);
+static int read_config(void* user, const char* section, const char* name,
+                       const char* value);
+
+/* Global variables */
 static FILE *manifest;
 static long manifest_time = 0;
+static Config config;
 
 void
+usage(void)
+{
+        char *usage_str = "swege 1.0.0\n"
+                "Please see https://github.com/sakhmatd/swege"
+                " for detailed usage instructions.\n";
+        fprintf(stderr, "%s", usage_str);
+        exit(errno);
+}
+
+inline void
 dir_err(const char *path)
 {
         fprintf(stderr, "Cannot open directory '%s': %s\n", path, strerror(errno));
-        usage();
 }
 
-void
+inline void
 file_err(const char *path)
 {
         fprintf(stderr, "Cannot access file '%s': %s\n", path, strerror(errno));
-        usage();
 }
 
 /**
@@ -76,40 +116,32 @@ stream_file(FILE *in, FILE *out)
                 fwrite(buf, 1, bytes, out);
 }
 
-char*
-retrieve_title(FILE *in)
-{
-        char *line = NULL;
-        size_t linecap = 0;
-        getline(&line, &linecap, in);
-
-        if (line && strlen(line) >= 3 && line[0] == '#') {
-                line += 2; /* Remove the '#' and the space after it */
-                line[strcspn(line, "\n")] = 0; /* Remove trailing newline */
-        } else {
-                line = NULL;
-        }
-
-        rewind(in);
-        return line;
-}
-
-char*
-mk_dst_path(const char *path)
-{
-        static char ret[PATH_MAX];
-        size_t namelen = strlen(src_dir);
-
-        path += namelen;
-        snprintf(ret, PATH_MAX, "%s%s", dst_dir, path);
-
-        return ret;
-}
-
 void
+copy_file(const char *path)
+{
+        FILE *orig = fopen(path, "r");
+        FILE *new = fopen(mk_dst_path(path), "w");
+
+        if (!orig)
+                file_err(path);
+        if (!new)
+                file_err(mk_dst_path(path));
+
+        stream_file(orig, new);
+}
+
+inline void
 log_file(const char *src_path)
 {
         fprintf(manifest, "%s\n", src_path);
+}
+
+void
+make_dir(const char *path)
+{
+        mode_t default_mode = umask(0);
+        mkdir(path, 0755);
+        umask(default_mode);
 }
 
 long
@@ -130,6 +162,19 @@ dir_exists(const char *src_path)
                 closedir(dptr);
                 return 1;
         }
+
+        return 0;
+}
+
+int
+file_is_newer(const char *src_path)
+{
+        struct stat src_stats;
+
+        stat(src_path, &src_stats);
+
+        if (src_stats.st_mtim.tv_sec > manifest_time)
+                return 1;
 
         return 0;
 }
@@ -157,17 +202,34 @@ path_in_manifest(const char *src_path)
         return 0;
 }
 
-int
-file_is_newer(const char *src_path)
+char*
+retrieve_title(FILE *in)
 {
-        struct stat src_stats;
+        char *line = NULL;
+        size_t linecap = 0;
+        getline(&line, &linecap, in);
 
-        stat(src_path, &src_stats);
+        if (line && strlen(line) >= 3 && line[0] == '#') {
+                line += 2; /* Remove the '#' and the space after it */
+                line[strcspn(line, "\n")] = 0; /* Remove trailing newline */
+        } else {
+                line = NULL;
+        }
 
-        if (src_stats.st_mtim.tv_sec > manifest_time)
-                return 1;
+        rewind(in);
+        return line;
+}
 
-        return 0;
+char*
+mk_dst_path(const char *path)
+{
+        static char ret[PATH_MAX];
+        size_t namelen = strlen(config.src_dir);
+
+        path += namelen;
+        snprintf(ret, PATH_MAX, "%s%s", config.dst_dir, path);
+
+        return ret;
 }
 
 void
@@ -215,8 +277,8 @@ find_files(const char *src_path)
                                         find_files(path);
                                 }
                         }
-                } else if (!strstr(footer_file, D_NAME) &&
-                           !strstr(header_file, D_NAME) ) {
+                } else if (!strstr(config.footer_file, D_NAME) &&
+                           !strstr(config.header_file, D_NAME) ) {
                         snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
                         if (path_in_manifest(path)) {
                                 if (file_is_newer(path)) {
@@ -240,18 +302,18 @@ find_files(const char *src_path)
 void
 render_md(char *path)
 {
-        FILE *header = fopen(header_file, "r");
-        FILE *footer = fopen(footer_file, "r");
+        FILE *header = fopen(config.header_file, "r");
+        FILE *footer = fopen(config.footer_file, "r");
 
         FILE *fd = fopen(path, "r");
 
         if (!fd)
                 file_err(path);
         if (!header)
-                file_err(header_file);
+                file_err(config.header_file);
 
         if (!footer)
-                file_err(footer_file);
+                file_err(config.footer_file);
 
 
         path[strlen(path) - 3] = 0; /* Remove the extention */
@@ -266,9 +328,10 @@ render_md(char *path)
 
         const char *page_title;
         if ((page_title = retrieve_title(fd)))
-                fprintf(out, "<title>%s - %s</title>\n", page_title, site_title);
+                fprintf(out, "<title>%s - %s</title>\n", page_title,
+                        config.site_title);
         else
-                fprintf(out, "<title>%s</title>\n", site_title);
+                fprintf(out, "<title>%s</title>\n", config.site_title);
 
         MMIOT *md = mkd_in(fd, 0);
         markdown(md, out, 0);
@@ -281,36 +344,26 @@ render_md(char *path)
         fclose(out);
 }
 
-void
-make_dir(const char *path)
+static int read_config(void* user, const char* section, const char* name,
+                       const char* value)
 {
-        mode_t default_mode = umask(0);
-        mkdir(path, 0755);
-        umask(default_mode);
-}
+        Config* pconfig = (Config*)user;
 
-void
-copy_file(const char *path)
-{
-        FILE *orig = fopen(path, "r");
-        FILE *new = fopen(mk_dst_path(path), "w");
+        if (MATCH("title")) {
+                pconfig->site_title = strdup(value);
+        } else if (MATCH("source")) {
+                pconfig->src_dir = strdup(value);
+        } else if (MATCH("destination")) {
+                pconfig->dst_dir = strdup(value);
+        } else if (MATCH("header")) {
+                pconfig->header_file = strdup(value);
+        } else if (MATCH("footer")) {
+                pconfig->footer_file = strdup(value);
+        } else {
+                return 0;  /* unknown section/name, error */
+        }
 
-        if (!orig)
-                file_err(path);
-        if (!new)
-                file_err(mk_dst_path(path));
-
-        stream_file(orig, new);
-}
-
-void
-usage(void)
-{
-        char *usage_str = "swege 0.4\n\
-By default, swege reads markdown files from the 'src' directory and renders\n\
-them as HTML to the 'site' directory, copying over any non-markdown files.\n";
-        fprintf(stderr, "%s", usage_str);
-        exit(errno);
+        return 1;
 }
 
 int
@@ -322,20 +375,25 @@ main(int argc, char *argv[])
 
         /* Check if destination directory exists and create it if it doesn't. */
         mode_t default_mode = umask(0);
-        if (!dir_exists(dst_dir))
-                mkdir(dst_dir, 0755);
+        if (!dir_exists(config.dst_dir))
+                mkdir(config.dst_dir, 0755);
         umask(default_mode);
 
         /* mtime gets updated with fopen, so we need to save previous mtime */
         /* File exists returns current mtime of the file or 0 if it doesn't exist */
-        manifest_time = file_exists(".manifest");
+        manifest_time = file_exists(MANIFESTF);
         if (manifest_time) {
-                manifest = fopen(".manifest", "a+");
+                manifest = fopen(MANIFESTF, "a+");
         } else {
-                manifest = fopen(".manifest", "w+");
+                manifest = fopen(MANIFESTF, "w+");
         }
 
-        find_files(src_dir);
+        if (ini_parse(INIFILE, read_config, &config) < 0) {
+                printf("Can't load 'swege.ini'\n");
+                return 1;
+        }
+
+        find_files(config.src_dir);
 
         fclose(manifest);
 }
