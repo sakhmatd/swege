@@ -29,8 +29,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-Contains many parts from rlutil by Tapio Vierros licensed under WTFPLv2.
-
 # CREDITS
 Many thanks to David Parsons for the Discount library.
 
