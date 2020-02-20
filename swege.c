@@ -81,7 +81,7 @@ static Config config;
 void
 usage(void)
 {
-	char *usage_str = "swege 1.0.2\n"
+	char *usage_str = "swege 1.0.3\n"
 		"Please see https://github.com/sakhmatd/swege"
 		" for detailed usage instructions.\n";
 	fprintf(stderr, "%s", usage_str);
@@ -246,7 +246,7 @@ find_files(const char *src_path)
 		char path[PATH_MAX];
 
 		if(!(entry = readdir(src)))
-		   break;
+                        break;
 
 		/* Ignore emacs/vim autosave files */
 		if(strstr(D_NAME, "~") || strstr(D_NAME, "#"))
@@ -389,9 +389,15 @@ main(int argc, char *argv[])
 	/* mtime gets updated with fopen, so we need to save previous mtime */
 	/* File exists returns current mtime of the file or 0 if it doesn't exist */
 	manifest_time = file_exists(MANIFESTF);
-	if (manifest_time) {
+
+        /* Force updating manifest if footer or header files are updated */
+        int foot_head_updated = (file_is_newer(config.footer_file) ||
+                                 file_is_newer(config.header_file));
+        
+	if (manifest_time && !(foot_head_updated)) {
 		manifest = fopen(MANIFESTF, "a+");
 	} else {
+                manifest_time = 0;
 		manifest = fopen(MANIFESTF, "w+");
 	}
 
