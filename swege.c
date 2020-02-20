@@ -81,7 +81,7 @@ static Config config;
 void
 usage(void)
 {
-        char *usage_str = "swege 1.0.0\n"
+        char *usage_str = "swege 1.0.2\n"
                 "Please see https://github.com/sakhmatd/swege"
                 " for detailed usage instructions.\n";
         fprintf(stderr, "%s", usage_str);
@@ -92,12 +92,14 @@ inline void
 dir_err(const char *path)
 {
         fprintf(stderr, "Cannot open directory '%s': %s\n", path, strerror(errno));
+	exit(errno);
 }
 
 inline void
 file_err(const char *path)
 {
         fprintf(stderr, "Cannot access file '%s': %s\n", path, strerror(errno));
+	exit(errno);
 }
 
 /**
