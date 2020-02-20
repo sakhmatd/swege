@@ -1,4 +1,5 @@
-# swege
+![swege](https://sakhmatd.ru/assets/img/swege_banner.png)
+
 swege is a Static WEbsite GEnerator written in C.
 
 It leverages the [discount](http://www.pell.portland.or.us/~orc/Code/discount/)
