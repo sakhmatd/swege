@@ -373,6 +373,11 @@ main(int argc, char *argv[])
         if (argc >= 2)
                 usage();
 
+	if (ini_parse(INIFILE, read_config, &config) < 0) {
+                printf("Can't load 'swege.ini'\n");
+                return 1;
+        }
+
         /* Check if destination directory exists and create it if it doesn't. */
         mode_t default_mode = umask(0);
         if (!dir_exists(config.dst_dir))
@@ -386,11 +391,6 @@ main(int argc, char *argv[])
                 manifest = fopen(MANIFESTF, "a+");
         } else {
                 manifest = fopen(MANIFESTF, "w+");
-        }
-
-        if (ini_parse(INIFILE, read_config, &config) < 0) {
-                printf("Can't load 'swege.ini'\n");
-                return 1;
         }
 
         find_files(config.src_dir);
