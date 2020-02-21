@@ -259,7 +259,7 @@ find_files(const char *src_path)
 		if (strstr(D_NAME, ".md")) {
 			snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
 			if (path_in_manifest(path)) {
-				if (file_is_newer(path)) {
+				if (file_is_newer(path) || head_foot_updated) {
 					printf("%s\n", path);
 					render_md(path);
 				}
@@ -399,11 +399,10 @@ main(int argc, char *argv[])
         /* Force updating manifest if footer or header files are updated */
         head_foot_updated = (file_is_newer(config.footer_file) ||
                                  file_is_newer(config.header_file));
-        
-	if (manifest_time && !(head_foot_updated)) {
+
+	if (manifest_time) {
 		manifest = fopen(MANIFESTF, "a+");
 	} else {
-                manifest_time = 0;
 		manifest = fopen(MANIFESTF, "w+");
 	}
 
