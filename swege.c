@@ -412,7 +412,7 @@ main(int argc, char *argv[])
         if (files_procd)
                 printf("%d files/directories processed.\n", files_procd);
         else
-                printf("No changes or new files detected, site it up to date.\n");
+                printf("No changes or new files detected, site is up to date.\n");
 
 	fclose(manifest);
 }
