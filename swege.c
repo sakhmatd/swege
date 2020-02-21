@@ -76,6 +76,8 @@ static int read_config(void* user, const char* section, const char* name,
 /* Global variables */
 static FILE *manifest;
 static long manifest_time = 0;
+static int head_foot_updated = 0;
+static int files_procd = 0;
 static Config config;
 
 void
@@ -129,6 +131,7 @@ copy_file(const char *path)
 	if (!new)
 		file_err(mk_dst_path(path));
 
+        files_procd++;
 	stream_file(orig, new);
 }
 
@@ -144,6 +147,7 @@ make_dir(const char *path)
 	mode_t default_mode = umask(0);
 	mkdir(path, 0755);
 	umask(default_mode);
+        files_procd++;
 }
 
 long
@@ -344,6 +348,8 @@ render_md(char *path)
 	fclose(footer);
 	fclose(fd);
 	fclose(out);
+
+        files_procd++;
 }
 
 static int read_config(void* user, const char* section, const char* name,
@@ -391,10 +397,10 @@ main(int argc, char *argv[])
 	manifest_time = file_exists(MANIFESTF);
 
         /* Force updating manifest if footer or header files are updated */
-        int foot_head_updated = (file_is_newer(config.footer_file) ||
+        head_foot_updated = (file_is_newer(config.footer_file) ||
                                  file_is_newer(config.header_file));
         
-	if (manifest_time && !(foot_head_updated)) {
+	if (manifest_time && !(head_foot_updated)) {
 		manifest = fopen(MANIFESTF, "a+");
 	} else {
                 manifest_time = 0;
@@ -402,6 +408,11 @@ main(int argc, char *argv[])
 	}
 
 	find_files(config.src_dir);
+
+        if (files_procd)
+                printf("%d files/directories processed.\n", files_procd);
+        else
+                printf("No changes or new files detected, site it up to date.\n");
 
 	fclose(manifest);
 }
