@@ -20,7 +20,10 @@ PROJECT = swege
 all:
 	$(CC) $(CFLAGS) $(INCLUDES) $(LIBS) *.c -o $(PROJECT)
 
-debug: all
+debug: 
+	$(CC) $(CFLAGS) -g $(INCLUDES) $(LIBS) *.c -o $(PROJECT)
+
+gdb: debug
 	gdb $(PROJECT)
 
 memcheck: all

@@ -28,6 +28,7 @@
 
 /* Constants and Macros */
 #define BUF_SIZE 3145728
+#define TITLE_SIZE 50
 #define D_NAME entry->d_name
 
 #define MANIFESTF ".manifest"
@@ -83,7 +84,7 @@ static Config config;
 void
 usage(void)
 {
-	char *usage_str = "swege 1.0.3\n"
+	char *usage_str = "swege 1.0.4\n"
 		"Please see https://github.com/sakhmatd/swege"
 		" for detailed usage instructions.\n";
 	fprintf(stderr, "%s", usage_str);
@@ -116,8 +117,12 @@ stream_file(FILE *in, FILE *out)
 	size_t bytes;
 
 	rewind(in);
-	while ((bytes = fread(buf, 1, sizeof(buf), in)) > 0)
-		fwrite(buf, 1, bytes, out);
+	while ((bytes = fread(buf, 1, sizeof(buf), in)) > 0) {
+		if(!(fwrite(buf, 1, bytes, out))) {
+                        fprintf(stderr, "Copying file failed.");
+                        break;
+                }
+        }
 }
 
 void
@@ -133,6 +138,7 @@ copy_file(const char *path)
 
         files_procd++;
 	stream_file(orig, new);
+
 }
 
 inline void
@@ -208,6 +214,11 @@ path_in_manifest(const char *src_path)
 	return 0;
 }
 
+/**
+ * Grabs the first line of the md file.
+ * Extract the title if explicitly given or use the first H1 found as the title.
+ * Empty first line would result in no title for the page.
+ */
 char*
 retrieve_title(FILE *in)
 {
@@ -215,14 +226,30 @@ retrieve_title(FILE *in)
 	size_t linecap = 0;
 	getline(&line, &linecap, in);
 
-	if (line && strlen(line) >= 3 && line[0] == '#') {
+        if (strstr(line, "title: ")) {
+                char *ret = malloc(sizeof(char) * (TITLE_SIZE + 1));
+                char *piece = NULL;
+                ret[0] = '\0'; /* Ensure ret is an empty string */
+
+                while ((piece = strsep(&line, " "))) {
+                        if (strcmp("title:", piece)) {
+                                strncat(ret, piece, (TITLE_SIZE - strlen(ret)));
+                                strncat(ret, " ", (TITLE_SIZE - strlen(ret)));
+                        }
+                }
+
+                /* Remove trailing newline and whitespace */
+                *strrchr(ret, ' ') = 0;
+
+                return ret;
+	} else if (line && strlen(line) >= 3 && line[0] == '#') {
 		line += 2; /* Remove the '#' and the space after it */
 		line[strcspn(line, "\n")] = 0; /* Remove trailing newline */
+                rewind(in); /* Leave H1 in place for rendering */
 	} else {
 		line = NULL;
 	}
 
-	rewind(in);
 	return line;
 }
 
@@ -332,12 +359,14 @@ render_md(char *path)
 
 	stream_file(header, out);
 
-	const char *page_title;
+        char *page_title;
 	if ((page_title = retrieve_title(fd)))
 		fprintf(out, "<title>%s - %s</title>\n", page_title,
 			config.site_title);
 	else
 		fprintf(out, "<title>%s</title>\n", config.site_title);
+
+        free(page_title);
 
 	MMIOT *md = mkd_in(fd, 0);
 	markdown(md, out, 0);
@@ -402,6 +431,7 @@ main(int argc, char *argv[])
 
 	if (manifest_time) {
 		manifest = fopen(MANIFESTF, "a+");
+                futimens(fileno(manifest), NULL); /* update manifest mtime */
 	} else {
 		manifest = fopen(MANIFESTF, "w+");
 	}
