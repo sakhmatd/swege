@@ -32,6 +32,9 @@ memcheck: all
 memcheck_v: all
 	valgrind --leak-check=yes -v ./$(PROJECT)
 
+memcheck_full: all
+	valgrind --leak-check=full --show-leak-kinds=all ./$(PROJECT)
+
 clean:
 	rm $(PROJECT)
 

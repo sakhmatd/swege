@@ -1,15 +1,15 @@
-/* Copyright 2020 Sergei Akhmatdinov					     */
-/*									     */
-/* Licensed under the Apache License, Version 2.0 (the "License");	     */
-/* you may not use this file except in compliance with the License.	     */
-/* You may obtain a copy of the License at				     */
-/*									     */
-/*     http://www.apache.org/licenses/LICENSE-2.0			     */
-/*									     */
-/* Unless required by applicable law or agreed to in writing, software	     */
-/* distributed under the License is distributed on an "AS IS" BASIS,	     */
-/* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  */
-/* See the License for the specific language governing permissions and	     */
+/* Copyright 2020 Sergei Akhmatdinov                                         */
+/*                                                                           */
+/* Licensed under the Apache License, Version 2.0 (the "License");           */
+/* you may not use this file except in compliance with the License.          */
+/* You may obtain a copy of the License at                                   */
+/*                                                                           */
+/*     http://www.apache.org/licenses/LICENSE-2.0                            */
+/*                                                                           */
+/* Unless required by applicable law or agreed to in writing, software       */
+/* distributed under the License is distributed on an "AS IS" BASIS,         */
+/* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.      */
+/* See the License for the specific language governing permissions and                   */
 /* limitations under the License. */
 
 /* Includes */
@@ -40,8 +40,7 @@
 #define MATCH(n) strcmp(section, INISECTION) == 0 && strcmp(name, n) == 0
 
 /* Typedefs */
-typedef struct
-{
+typedef struct {
 	char *site_title;
 
 	char *src_dir;
@@ -56,7 +55,7 @@ static void usage(void);
 static void dir_err(const char *path);
 static void file_err(const char *path);
 
-static void stream_file(FILE *in, FILE *out);
+static void stream_file(FILE * in, FILE * out);
 static void copy_file(const char *path);
 static void log_file(const char *path);
 static void make_dir(const char *path);
@@ -66,13 +65,13 @@ static int dir_exists(const char *src_path);
 static int file_is_newer(const char *src_path);
 static int path_in_manifest(const char *src_path);
 
-static char* retrieve_title(FILE *in);
-static char* mk_dst_path(const char *path);
+static char *retrieve_title(FILE * in);
+static char *mk_dst_path(const char *path);
 
 static void find_files(const char *src_path);
 static void render_md(char *path);
-static int read_config(void* user, const char* section, const char* name,
-		       const char* value);
+static int read_config(void *user, const char *section, const char *name,
+		       const char *value);
 
 /* Global variables */
 static FILE *manifest;
@@ -82,8 +81,7 @@ static int files_procd = 0;
 static Config config;
 
 void
-usage(void)
-{
+usage(void) {
 	char *usage_str = "swege 1.0.4\n"
 		"Please see https://github.com/sakhmatd/swege"
 		" for detailed usage instructions.\n";
@@ -92,16 +90,16 @@ usage(void)
 }
 
 inline void
-dir_err(const char *path)
-{
-	fprintf(stderr, "Cannot open directory '%s': %s\n", path, strerror(errno));
+dir_err(const char *path) {
+	fprintf(stderr, "Cannot open directory '%s': %s\n", path,
+		strerror(errno));
 	exit(errno);
 }
 
 inline void
-file_err(const char *path)
-{
-	fprintf(stderr, "Cannot access file '%s': %s\n", path, strerror(errno));
+file_err(const char *path) {
+	fprintf(stderr, "Cannot access file '%s': %s\n", path,
+		strerror(errno));
 	exit(errno);
 }
 
@@ -111,66 +109,60 @@ file_err(const char *path)
  * from user to kern space, but portable.
  **/
 void
-stream_file(FILE *in, FILE *out)
-{
+stream_file(FILE * in, FILE * out) {
 	char buf[BUF_SIZE];
 	size_t bytes;
 
 	rewind(in);
-	while ((bytes = fread(buf, 1, sizeof(buf), in)) > 0) {
+	while((bytes = fread(buf, 1, sizeof(buf), in)) > 0) {
 		if(!(fwrite(buf, 1, bytes, out))) {
-                        fprintf(stderr, "Copying file failed.");
-                        break;
-                }
-        }
+			fprintf(stderr, "Copying file failed.");
+			break;
+		}
+	}
 }
 
 void
-copy_file(const char *path)
-{
+copy_file(const char *path) {
 	FILE *orig = fopen(path, "r");
 	FILE *new = fopen(mk_dst_path(path), "w");
 
-	if (!orig)
+	if(!orig)
 		file_err(path);
-	if (!new)
+	if(!new)
 		file_err(mk_dst_path(path));
 
-        files_procd++;
+	files_procd++;
 	stream_file(orig, new);
 
 }
 
 inline void
-log_file(const char *src_path)
-{
+log_file(const char *src_path) {
 	fprintf(manifest, "%s\n", src_path);
 }
 
 void
-make_dir(const char *path)
-{
+make_dir(const char *path) {
 	mode_t default_mode = umask(0);
 	mkdir(path, 0755);
 	umask(default_mode);
-        files_procd++;
+	files_procd++;
 }
 
 long
-file_exists(const char *src_path)
-{
+file_exists(const char *src_path) {
 	struct stat file_stat;
-	if (stat(src_path, &file_stat) == 0)
+	if(stat(src_path, &file_stat) == 0)
 		return file_stat.st_mtim.tv_sec;
 
 	return 0;
 }
 
 int
-dir_exists(const char *src_path)
-{
+dir_exists(const char *src_path) {
 	DIR *dptr;
-	if ((dptr = opendir(src_path))) {
+	if((dptr = opendir(src_path))) {
 		closedir(dptr);
 		return 1;
 	}
@@ -179,38 +171,41 @@ dir_exists(const char *src_path)
 }
 
 int
-file_is_newer(const char *src_path)
-{
+file_is_newer(const char *src_path) {
 	struct stat src_stats;
 
 	stat(src_path, &src_stats);
 
-	if (src_stats.st_mtim.tv_sec > manifest_time)
+	if(src_stats.st_mtim.tv_sec > manifest_time)
 		return 1;
 
 	return 0;
 }
 
 int
-path_in_manifest(const char *src_path)
-{
+path_in_manifest(const char *src_path) {
 	char *line = NULL;
+	char *line_cpy;
 	size_t len;
 	int read;
 
 	/* Edge case if .manifest was deleted */
-	if (manifest_time == 0) {
+	if(manifest_time == 0) {
 		return 0;
 	}
 
 	rewind(manifest);
 
-	while ((read = getline(&line, &len, manifest)) != -1) {
-		line[strcspn(line, "\n")] = 0;
-		if (!strcmp(line, src_path))
+	while((read = getline(&line, &len, manifest)) != -1) {
+		line_cpy = line;
+		line_cpy[strcspn(line_cpy, "\n")] = 0;
+		if(!strcmp(line_cpy, src_path)) {
+			free(line);
 			return 1;
+		}
 	}
 
+	free(line);
 	return 0;
 }
 
@@ -219,43 +214,57 @@ path_in_manifest(const char *src_path)
  * Extract the title if explicitly given or use the first H1 found as the title.
  * Empty first line would result in no title for the page.
  */
-char*
-retrieve_title(FILE *in)
-{
+char *
+retrieve_title(FILE * in) {
 	char *line = NULL;
 	size_t linecap = 0;
 	getline(&line, &linecap, in);
 
-        if (strstr(line, "title: ")) {
-                char *ret = malloc(sizeof(char) * (TITLE_SIZE + 1));
-                char *piece = NULL;
-                ret[0] = '\0'; /* Ensure ret is an empty string */
-
-                while ((piece = strsep(&line, " "))) {
-                        if (strcmp("title:", piece)) {
-                                strncat(ret, piece, (TITLE_SIZE - strlen(ret)));
-                                strncat(ret, " ", (TITLE_SIZE - strlen(ret)));
-                        }
-                }
-
-                /* Remove trailing newline and whitespace */
-                *strrchr(ret, ' ') = 0;
-
-                return ret;
-	} else if (line && strlen(line) >= 3 && line[0] == '#') {
-		line += 2; /* Remove the '#' and the space after it */
-		line[strcspn(line, "\n")] = 0; /* Remove trailing newline */
-                rewind(in); /* Leave H1 in place for rendering */
-	} else {
-		line = NULL;
+	if(!line) {
+		fprintf(stderr, "Can't allocate memory: line\n");
+		exit(errno);
 	}
 
-	return line;
+	char *ret = malloc(sizeof(char) * (TITLE_SIZE + 1));
+	if(!ret) {
+		fprintf(stderr, "Can't allocate memory: ret\n");
+		exit(errno);
+	}
+
+	if(line && strstr(line, "title: ")) {
+		char *piece = NULL;
+		char *line_cpy = line; /* strsep modifies argument */
+		ret[0] = '\0';	/* Ensure ret is an empty string */
+
+		while((piece = strsep(&line_cpy, " "))) {
+			if(strcmp("title:", piece)) {
+				strncat(ret, piece,
+					(TITLE_SIZE - strlen(ret)));
+				strncat(ret, " ", (TITLE_SIZE - strlen(ret)));
+			}
+		}
+
+		/* Remove trailing newline and whitespace */
+		*strrchr(ret, ' ') = 0;
+		ret[strcspn(ret, "\n")] = 0;
+	} else if(line && strlen(line) >= 3 && line[0] == '#') {
+		strncpy(ret, line + 2, (TITLE_SIZE + 1)); /* Copy line without the # */
+		ret[TITLE_SIZE] = '\0';	/* Ensure termination */
+
+		ret[strcspn(ret, "\n")] = 0;	/* Remove trailing newline */
+		rewind(in);	/* Leave H1 in place for rendering */
+	} else {
+		free(line);
+		free(ret);
+		return NULL;
+	}
+
+	free(line);
+	return ret;
 }
 
-char*
-mk_dst_path(const char *path)
-{
+char *
+mk_dst_path(const char *path) {
 	static char ret[PATH_MAX];
 	size_t namelen = strlen(config.src_dir);
 
@@ -266,27 +275,26 @@ mk_dst_path(const char *path)
 }
 
 void
-find_files(const char *src_path)
-{
+find_files(const char *src_path) {
 	DIR *src = opendir(src_path);
-	if (!src)
+	if(!src)
 		dir_err(src_path);
 
-	for (;;) {
+	for(;;) {
 		struct dirent *entry;
 		char path[PATH_MAX];
 
 		if(!(entry = readdir(src)))
-                        break;
+			break;
 
 		/* Ignore emacs/vim autosave files */
 		if(strstr(D_NAME, "~") || strstr(D_NAME, "#"))
 			continue;
 
-		if (strstr(D_NAME, ".md")) {
+		if(strstr(D_NAME, ".md")) {
 			snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
-			if (path_in_manifest(path)) {
-				if (file_is_newer(path) || head_foot_updated) {
+			if(path_in_manifest(path)) {
+				if(file_is_newer(path) || head_foot_updated) {
 					printf("%s\n", path);
 					render_md(path);
 				}
@@ -295,26 +303,29 @@ find_files(const char *src_path)
 				printf("%s\n", path);
 				render_md(path);
 			}
-		} else if (entry->d_type & DT_DIR) {
-			if (strcmp(D_NAME, "..") != 0 &&
-			    strcmp(D_NAME, ".") != 0) {
-				snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
-				if (path_in_manifest(path)) {
-					snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
+		} else if(entry->d_type & DT_DIR) {
+			if(strcmp(D_NAME, "..") != 0 &&
+			   strcmp(D_NAME, ".") != 0) {
+				snprintf(path, PATH_MAX, "%s/%s", src_path,
+					 D_NAME);
+				if(path_in_manifest(path)) {
+					snprintf(path, PATH_MAX, "%s/%s",
+						 src_path, D_NAME);
 					find_files(path);
 				} else {
 					make_dir(mk_dst_path(path));
-					snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
+					snprintf(path, PATH_MAX, "%s/%s",
+						 src_path, D_NAME);
 					log_file(path);
 					printf("%s\n", path);
 					find_files(path);
 				}
 			}
-		} else if (!strstr(config.footer_file, D_NAME) &&
-			   !strstr(config.header_file, D_NAME) ) {
+		} else if(!strstr(config.footer_file, D_NAME) &&
+			  !strstr(config.header_file, D_NAME)) {
 			snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
-			if (path_in_manifest(path)) {
-				if (file_is_newer(path)) {
+			if(path_in_manifest(path)) {
+				if(file_is_newer(path)) {
 					printf("%s\n", path);
 					copy_file(path);
 				}
@@ -326,47 +337,48 @@ find_files(const char *src_path)
 		}
 	}
 
-	if (closedir(src)) {
-		fprintf(stderr, "Cannot close directory '%s': %s\n", src_path, strerror(errno));
+	if(closedir(src)) {
+		fprintf(stderr, "Cannot close directory '%s': %s\n", src_path,
+			strerror(errno));
 		exit(errno);
 	}
 }
 
 void
-render_md(char *path)
-{
+render_md(char *path) {
 	FILE *header = fopen(config.header_file, "r");
 	FILE *footer = fopen(config.footer_file, "r");
 
 	FILE *fd = fopen(path, "r");
 
-	if (!fd)
+	if(!fd)
 		file_err(path);
-	if (!header)
+	if(!header)
 		file_err(config.header_file);
 
-	if (!footer)
+	if(!footer)
 		file_err(config.footer_file);
 
 
-	path[strlen(path) - 3] = 0; /* Remove the extention */
+	path[strlen(path) - 3] = 0;	/* Remove the extention */
 	snprintf(path, PATH_MAX, "%s.html", mk_dst_path(path));
 
 	FILE *out = fopen(path, "w");
 
-	if (!out)
+	if(!out)
 		file_err(path);
 
 	stream_file(header, out);
 
-        char *page_title;
-	if ((page_title = retrieve_title(fd)))
+	char *page_title = retrieve_title(fd);
+	if(page_title) {
 		fprintf(out, "<title>%s - %s</title>\n", page_title,
 			config.site_title);
-	else
+	} else {
 		fprintf(out, "<title>%s</title>\n", config.site_title);
+	}
 
-        free(page_title);
+	free(page_title);
 
 	MMIOT *md = mkd_in(fd, 0);
 	markdown(md, out, 0);
@@ -378,46 +390,45 @@ render_md(char *path)
 	fclose(fd);
 	fclose(out);
 
-        files_procd++;
+	files_procd++;
 }
 
-static int read_config(void* user, const char* section, const char* name,
-		       const char* value)
-{
-	Config* pconfig = (Config*)user;
+int
+read_config(void *user, const char *section, const char *name,
+	    const char *value) {
+	Config *pconfig = (Config *) user;
 
-	if (MATCH("title")) {
+	if(MATCH("title")) {
 		pconfig->site_title = strdup(value);
-	} else if (MATCH("source")) {
+	} else if(MATCH("source")) {
 		pconfig->src_dir = strdup(value);
-	} else if (MATCH("destination")) {
+	} else if(MATCH("destination")) {
 		pconfig->dst_dir = strdup(value);
-	} else if (MATCH("header")) {
+	} else if(MATCH("header")) {
 		pconfig->header_file = strdup(value);
-	} else if (MATCH("footer")) {
+	} else if(MATCH("footer")) {
 		pconfig->footer_file = strdup(value);
 	} else {
-		return 0;  /* unknown section/name, error */
+		return 0;	/* unknown section/name, error */
 	}
 
 	return 1;
 }
 
 int
-main(int argc, char *argv[])
-{
-	(void)argv; /* Suppress compiler warning about unused argv */
-	if (argc >= 2)
+main(int argc, char *argv[]) {
+	(void)argv;	/* Suppress compiler warning about unused argv */
+	if(argc >= 2)
 		usage();
 
-	if (ini_parse(INIFILE, read_config, &config) < 0) {
+	if(ini_parse(INIFILE, read_config, &config) < 0) {
 		printf("Can't load 'swege.ini'\n");
 		return 1;
 	}
 
 	/* Check if destination directory exists and create it if it doesn't. */
 	mode_t default_mode = umask(0);
-	if (!dir_exists(config.dst_dir))
+	if(!dir_exists(config.dst_dir))
 		mkdir(config.dst_dir, 0755);
 	umask(default_mode);
 
@@ -425,23 +436,23 @@ main(int argc, char *argv[])
 	/* File exists returns current mtime of the file or 0 if it doesn't exist */
 	manifest_time = file_exists(MANIFESTF);
 
-        /* Force updating manifest if footer or header files are updated */
-        head_foot_updated = (file_is_newer(config.footer_file) ||
-                                 file_is_newer(config.header_file));
+	/* Force updating manifest if footer or header files are updated */
+	head_foot_updated = (file_is_newer(config.footer_file) ||
+			     file_is_newer(config.header_file));
 
-	if (manifest_time) {
+	if(manifest_time) {
 		manifest = fopen(MANIFESTF, "a+");
-                futimens(fileno(manifest), NULL); /* update manifest mtime */
+		futimens(fileno(manifest), NULL);	/* update manifest mtime */
 	} else {
 		manifest = fopen(MANIFESTF, "w+");
 	}
 
 	find_files(config.src_dir);
 
-        if (files_procd)
-                printf("%d files/directories processed.\n", files_procd);
-        else
-                printf("No changes or new files detected, site is up to date.\n");
+	if(files_procd)
+		printf("%d files/directories processed.\n", files_procd);
+	else
+		printf("No changes or new files detected, site is up to date.\n");
 
 	fclose(manifest);
 }
