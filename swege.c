@@ -231,7 +231,7 @@ retrieve_title(FILE * in) {
 		exit(errno);
 	}
 
-	if(line && strstr(line, "title: ")) {
+	if(strstr(line, "title: ")) {
 		char *piece = NULL;
 		char *line_cpy = line; /* strsep modifies argument */
 		ret[0] = '\0';	/* Ensure ret is an empty string */
@@ -247,7 +247,7 @@ retrieve_title(FILE * in) {
 		/* Remove trailing newline and whitespace */
 		*strrchr(ret, ' ') = 0;
 		ret[strcspn(ret, "\n")] = 0;
-	} else if(line && strlen(line) >= 3 && line[0] == '#') {
+	} else if(strlen(line) >= 3 && line[0] == '#') {
 		strncpy(ret, line + 2, (TITLE_SIZE + 1)); /* Copy line without the # */
 		ret[TITLE_SIZE] = '\0';	/* Ensure termination */
 
