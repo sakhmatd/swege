@@ -26,14 +26,14 @@ debug:
 gdb: debug
 	gdb $(PROJECT)
 
-memcheck: all
+memcheck: debug
 	valgrind --leak-check=yes ./$(PROJECT)
 
-memcheck_v: all
+memcheck_v: debug
 	valgrind --leak-check=yes -v ./$(PROJECT)
 
-memcheck_full: all
-	valgrind --leak-check=full --show-leak-kinds=all ./$(PROJECT)
+memcheck_full: debug
+	valgrind --leak-check=full --show-leak-kinds=debug ./$(PROJECT)
 
 clean:
 	rm $(PROJECT)
