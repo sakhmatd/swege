@@ -1,15 +1,15 @@
-/* Copyright 2020 Sergei Akhmatdinov                                         */
-/*                                                                           */
-/* Licensed under the Apache License, Version 2.0 (the "License");           */
-/* you may not use this file except in compliance with the License.          */
-/* You may obtain a copy of the License at                                   */
-/*                                                                           */
-/*     http://www.apache.org/licenses/LICENSE-2.0                            */
-/*                                                                           */
-/* Unless required by applicable law or agreed to in writing, software       */
-/* distributed under the License is distributed on an "AS IS" BASIS,         */
-/* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.      */
-/* See the License for the specific language governing permissions and                   */
+/* Copyright 2020 Sergei Akhmatdinov					     */
+/*									     */
+/* Licensed under the Apache License, Version 2.0 (the "License");	     */
+/* you may not use this file except in compliance with the License.	     */
+/* You may obtain a copy of the License at				     */
+/*									     */
+/*     http://www.apache.org/licenses/LICENSE-2.0			     */
+/*									     */
+/* Unless required by applicable law or agreed to in writing, software	     */
+/* distributed under the License is distributed on an "AS IS" BASIS,	     */
+/* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.	 */
+/* See the License for the specific language governing permissions and			 */
 /* limitations under the License. */
 
 /* Includes */
@@ -18,16 +18,29 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 #include <string.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <mkdio.h>
 #include "ini.h"
 
+/* For copy_file() */
+#ifdef __APPLE__
+#include <copyfile.h>
+#elif defined(__FreeBSD__)
+#include <sys/socket.h>
+#include <sys/uio.h>
+#elif defined(__linux__)
+#include <sys/sendfile.h>
+#endif /* __APPLE__ */
+
 /* Constants and Macros */
-#define BUF_SIZE 3145728
+#define BUF_SIZE 3145728 /* Change if your stack is smaller */
 #define TITLE_SIZE 50
 #define D_NAME entry->d_name
 
@@ -54,9 +67,9 @@ typedef struct {
 static void usage(void);
 static void dir_err(const char *path);
 static void file_err(const char *path);
+static void copy_err(const char *path, int bytes);
 
-static void stream_file(FILE * in, FILE * out);
-static void copy_file(const char *path);
+static int copy_file(const char *path, const char *new_path, int append);
 static void log_file(const char *path);
 static void make_dir(const char *path);
 
@@ -82,7 +95,7 @@ static Config config;
 
 void
 usage(void) {
-	char *usage_str = "swege 1.0.4\n"
+	char *usage_str = "swege 1.1.0\n"
 		"Please see https://github.com/sakhmatd/swege"
 		" for detailed usage instructions.\n";
 	fprintf(stderr, "%s", usage_str);
@@ -103,38 +116,82 @@ file_err(const char *path) {
 	exit(errno);
 }
 
-/**
- * Streams contents of one file to another.
- * Not the fastest way to do it, there is overhead in moving
- * from user to kern space, but portable.
- **/
-void
-stream_file(FILE * in, FILE * out) {
-	char buf[BUF_SIZE];
-	size_t bytes;
+inline void
+copy_err(const char *path, int bytes)
+{
+	if (bytes)
+		fprintf(stderr, "Failed copying file '%s' at %d bytes : %s.\n",
+			path, bytes, strerror(errno));
+	else
+		fprintf(stderr, "Failed copying file '%s': %s.\n",
+			path, strerror(errno));
 
-	rewind(in);
-	while ((bytes = fread(buf, 1, sizeof(buf), in)) > 0) {
-		if (!(fwrite(buf, 1, bytes, out))) {
-			fprintf(stderr, "Copying file failed.");
-			break;
-		}
-	}
+	exit(errno);
 }
 
-void
-copy_file(const char *path) {
-	FILE *orig = fopen(path, "r");
-	FILE *new = fopen(mk_dst_path(path), "w");
+int
+copy_file(const char *path, const char *new_path, int append)
+{
+	int orig, new;
+	int ret = 0;
 
-	if (!orig)
+	orig = open(path, O_RDONLY);
+	if (orig < 0)
 		file_err(path);
-	if (!new)
-		file_err(mk_dst_path(path));
 
-	files_procd++;
-	stream_file(orig, new);
+	/* TODO: Preserve permissions */
+        if (append)
+                new = open(new_path, O_WRONLY | O_APPEND);
+        else
+                new = open(new_path, O_CREAT | O_TRUNC | O_WRONLY, 0660);
 
+	if (new < 0)
+		file_err(new_path);
+
+#ifdef __APPLE__
+
+	ret = fcopyfile(orig, new, 0, COPYFILE_ALL);
+	if (ret < 0)
+		copy_err(path, 0);
+
+#elif defined(__linux__) || __FreeBSD_version >= 1300038
+
+	/*
+	 * copy_file_range is included in Linux >= 4.5, but glibc >= 2.27 provides
+	 * user-space emulation on older Linux versions
+	 *
+	 * copy_file_range was added to FreeBSD 13.0-CURRENT in rev 350319
+	 *
+	 */
+
+	struct stat filestat;
+	fstat(orig, &filestat);
+
+	ret = copy_file_range(orig, 0, new, 0, filestat.st_size, 0);
+
+	if (ret < 0)
+		copy_err(path, 0);
+
+#else
+	/* 70's style as a fallback */
+	char buf[BUF_SIZE] = {0};
+        size_t bytes = 0;
+        int bytes_done = 0;
+
+        while ((bytes = read(orig, &buf, BUF_SIZE)) > 0) {
+                bytes_done += bytes;
+                if (write(new, &buf, bytes) < 0) {
+                        copy_err(path, bytes_done);
+                }
+	}
+
+#endif /* __APPLE__ */
+
+	close(orig);
+	close(new);
+        if (!append)
+                files_procd++;
+	return ret;
 }
 
 inline void
@@ -327,12 +384,12 @@ find_files(const char *src_path) {
 			if (path_in_manifest(path)) {
 				if (file_is_newer(path)) {
 					printf("%s\n", path);
-					copy_file(path);
+					copy_file(path, mk_dst_path(path), 0);
 				}
 			} else {
 				log_file(path);
 				printf("%s\n", path);
-				copy_file(path);
+				copy_file(path, mk_dst_path(path), 0);
 			}
 		}
 	}
@@ -346,29 +403,21 @@ find_files(const char *src_path) {
 
 void
 render_md(char *path) {
-	FILE *header = fopen(config.header_file, "r");
-	FILE *footer = fopen(config.footer_file, "r");
-
 	FILE *fd = fopen(path, "r");
 
 	if (!fd)
 		file_err(path);
-	if (!header)
-		file_err(config.header_file);
-
-	if (!footer)
-		file_err(config.footer_file);
-
 
 	path[strlen(path) - 3] = 0;	/* Remove the extention */
 	snprintf(path, PATH_MAX, "%s.html", mk_dst_path(path));
 
-	FILE *out = fopen(path, "w");
+	FILE *out = fopen(path, "a");
 
 	if (!out)
 		file_err(path);
 
-	stream_file(header, out);
+        /* Append the header */
+	copy_file(config.header_file, path, 1);
 
 	char *page_title = retrieve_title(fd);
 	if (page_title) {
@@ -383,12 +432,11 @@ render_md(char *path) {
 	MMIOT *md = mkd_in(fd, 0);
 	markdown(md, out, 0);
 
-	stream_file(footer, out);
-
-	fclose(header);
-	fclose(footer);
 	fclose(fd);
 	fclose(out);
+
+        /* Append the footer */
+	copy_file(config.footer_file, path, 1);
 
 	files_procd++;
 }
