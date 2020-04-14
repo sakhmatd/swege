@@ -421,7 +421,9 @@ render_md(char *path)
 	path[strlen(path) - 3] = 0;	/* Remove the extention */
 	snprintf(path, PATH_MAX, "%s.html", mk_dst_path(path));
 
-	FILE *out = fopen(path, "a");
+	/* Blank out former file contents */
+	FILE *out = fopen(path, "w");
+	freopen(path, "a", out);
 
 	if (!out)
 		file_err(path);
