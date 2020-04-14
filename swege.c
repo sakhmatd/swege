@@ -32,9 +32,6 @@
 /* For copy_file() */
 #ifdef __APPLE__
 #include <copyfile.h>
-#elif defined(__FreeBSD__)
-#include <sys/socket.h>
-#include <sys/uio.h>
 #elif defined(__linux__)
 #include <sys/sendfile.h>
 #endif /* __APPLE__ */
@@ -67,9 +64,10 @@ typedef struct {
 static void usage(void);
 static void dir_err(const char *path);
 static void file_err(const char *path);
-static void copy_err(const char *path, int bytes);
+static void copy_err(const char *path);
 
-static int copy_file(const char *path, const char *new_path, int append);
+static int stream_to_file(const char *path, const char *new_path);
+static int copy_file(const char *path, const char *new_path);
 static void log_file(const char *path);
 static void make_dir(const char *path);
 
@@ -94,7 +92,8 @@ static int files_procd = 0;
 static Config config;
 
 void
-usage(void) {
+usage(void) 
+{
 	char *usage_str = "swege 1.1.0\n"
 		"Please see https://github.com/sakhmatd/swege"
 		" for detailed usage instructions.\n";
@@ -103,34 +102,55 @@ usage(void) {
 }
 
 inline void
-dir_err(const char *path) {
+dir_err(const char *path) 
+{
 	fprintf(stderr, "Cannot open directory '%s': %s\n", path,
 		strerror(errno));
 	exit(errno);
 }
 
 inline void
-file_err(const char *path) {
+file_err(const char *path) 
+{
 	fprintf(stderr, "Cannot access file '%s': %s\n", path,
 		strerror(errno));
 	exit(errno);
 }
 
 inline void
-copy_err(const char *path, int bytes)
+copy_err(const char *path)
 {
-	if (bytes)
-		fprintf(stderr, "Failed copying file '%s' at %d bytes : %s.\n",
-			path, bytes, strerror(errno));
-	else
-		fprintf(stderr, "Failed copying file '%s': %s.\n",
+	fprintf(stderr, "Failed copying file '%s': %s.\n",
 			path, strerror(errno));
 
 	exit(errno);
 }
 
+/* 70's style read-write loop
+ * Used for adding headers and footers 
+ * or as a fallback copy */
 int
-copy_file(const char *path, const char *new_path, int append)
+stream_to_file(const char *path, const char *new_path)
+{
+	int orig, new;
+
+	orig = open(path, O_RDONLY);
+        new = open(new_path, O_WRONLY | O_APPEND);
+	
+	char buf[BUF_SIZE] = {0};
+        size_t bytes = 0;
+
+        while ((bytes = read(orig, &buf, BUF_SIZE)) > 0) {
+                if (write(new, &buf, bytes) < 0) {
+                        return 0;
+                }
+	}
+
+	return 1;
+}
+
+int
+copy_file(const char *path, const char *new_path)
 {
 	int orig, new;
 	int ret = 0;
@@ -140,67 +160,50 @@ copy_file(const char *path, const char *new_path, int append)
 		file_err(path);
 
 	/* TODO: Preserve permissions */
-        if (append)
-                new = open(new_path, O_WRONLY | O_APPEND);
-        else
-                new = open(new_path, O_CREAT | O_TRUNC | O_WRONLY, 0660);
+	new = open(new_path, O_CREAT | O_TRUNC | O_WRONLY, 0660);
 
 	if (new < 0)
 		file_err(new_path);
 
 #ifdef __APPLE__
-
 	ret = fcopyfile(orig, new, 0, COPYFILE_ALL);
-	if (ret < 0)
-		copy_err(path, 0);
-
 #elif defined(__linux__) || __FreeBSD_version >= 1300038
-
-	/*
-	 * copy_file_range is included in Linux >= 4.5, but glibc >= 2.27 provides
-	 * user-space emulation on older Linux versions
-	 *
-	 * copy_file_range was added to FreeBSD 13.0-CURRENT in rev 350319
-	 *
-	 */
-
 	struct stat filestat;
 	fstat(orig, &filestat);
 
+	#ifdef __linux__
+	/* copy_file_range requires _GNU_SOURCE, so sendfile instead */
+	off_t bytes_written = 0;
+	ret = sendfile(new, orig, &bytes_written, filestat.st_size);
+	#elif defined(__FreeBSD__)
+	/* copy_file_range added in 13-CURRENT, haven't tested yet */
 	ret = copy_file_range(orig, 0, new, 0, filestat.st_size, 0);
-
-	if (ret < 0)
-		copy_err(path, 0);
+	#endif /* __linux__ */
 
 #else
 	/* 70's style as a fallback */
-	char buf[BUF_SIZE] = {0};
-        size_t bytes = 0;
-        int bytes_done = 0;
-
-        while ((bytes = read(orig, &buf, BUF_SIZE)) > 0) {
-                bytes_done += bytes;
-                if (write(new, &buf, bytes) < 0) {
-                        copy_err(path, bytes_done);
-                }
-	}
+	ret = stream_to_file(path, new_path);	
 
 #endif /* __APPLE__ */
 
+	if (ret < 0)
+		copy_err(path);
+
 	close(orig);
 	close(new);
-        if (!append)
-                files_procd++;
+	files_procd++;
 	return ret;
 }
 
 inline void
-log_file(const char *src_path) {
+log_file(const char *src_path) 
+{
 	fprintf(manifest, "%s\n", src_path);
 }
 
 void
-make_dir(const char *path) {
+make_dir(const char *path)
+{
 	mode_t default_mode = umask(0);
 	mkdir(path, 0755);
 	umask(default_mode);
@@ -208,16 +211,18 @@ make_dir(const char *path) {
 }
 
 long
-file_exists(const char *src_path) {
+file_exists(const char *src_path) 
+{
 	struct stat file_stat;
 	if (stat(src_path, &file_stat) == 0)
-		return file_stat.st_mtim.tv_sec;
+		return file_stat.st_mtime;
 
 	return 0;
 }
 
 int
-dir_exists(const char *src_path) {
+dir_exists(const char *src_path) 
+{
 	DIR *dptr;
 	if ((dptr = opendir(src_path))) {
 		closedir(dptr);
@@ -228,19 +233,21 @@ dir_exists(const char *src_path) {
 }
 
 int
-file_is_newer(const char *src_path) {
+file_is_newer(const char *src_path) 
+{
 	struct stat src_stats;
 
 	stat(src_path, &src_stats);
 
-	if (src_stats.st_mtim.tv_sec > manifest_time)
+	if (src_stats.st_mtime > manifest_time)
 		return 1;
 
 	return 0;
 }
 
 int
-path_in_manifest(const char *src_path) {
+path_in_manifest(const char *src_path) 
+{
 	char *line = NULL;
 	char *line_cpy;
 	size_t len;
@@ -272,7 +279,8 @@ path_in_manifest(const char *src_path) {
  * Empty first line would result in no title for the page.
  */
 char *
-retrieve_title(FILE * in) {
+retrieve_title(FILE * in) 
+{
 	char *line = NULL;
 	size_t linecap = 0;
 	getline(&line, &linecap, in);
@@ -321,7 +329,8 @@ retrieve_title(FILE * in) {
 }
 
 char *
-mk_dst_path(const char *path) {
+mk_dst_path(const char *path) 
+{
 	static char ret[PATH_MAX];
 	size_t namelen = strlen(config.src_dir);
 
@@ -332,7 +341,8 @@ mk_dst_path(const char *path) {
 }
 
 void
-find_files(const char *src_path) {
+find_files(const char *src_path) 
+{
 	DIR *src = opendir(src_path);
 	if (!src)
 		dir_err(src_path);
@@ -384,12 +394,12 @@ find_files(const char *src_path) {
 			if (path_in_manifest(path)) {
 				if (file_is_newer(path)) {
 					printf("%s\n", path);
-					copy_file(path, mk_dst_path(path), 0);
+					copy_file(path, mk_dst_path(path));
 				}
 			} else {
 				log_file(path);
 				printf("%s\n", path);
-				copy_file(path, mk_dst_path(path), 0);
+				copy_file(path, mk_dst_path(path));
 			}
 		}
 	}
@@ -402,9 +412,9 @@ find_files(const char *src_path) {
 }
 
 void
-render_md(char *path) {
+render_md(char *path) 
+{
 	FILE *fd = fopen(path, "r");
-
 	if (!fd)
 		file_err(path);
 
@@ -417,7 +427,7 @@ render_md(char *path) {
 		file_err(path);
 
         /* Append the header */
-	copy_file(config.header_file, path, 1);
+	stream_to_file(config.header_file, path);
 
 	char *page_title = retrieve_title(fd);
 	if (page_title) {
@@ -436,14 +446,15 @@ render_md(char *path) {
 	fclose(out);
 
         /* Append the footer */
-	copy_file(config.footer_file, path, 1);
+	stream_to_file(config.footer_file, path);
 
 	files_procd++;
 }
 
 int
 read_config(void *user, const char *section, const char *name,
-	    const char *value) {
+	    const char *value) 
+{
 	Config *pconfig = (Config *) user;
 
 	if (MATCH("title")) {
@@ -464,7 +475,8 @@ read_config(void *user, const char *section, const char *name,
 }
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[]) 
+{
 	(void)argv;	/* Suppress compiler warning about unused argv */
 	if (argc >= 2)
 		usage();
