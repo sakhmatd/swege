@@ -6,11 +6,12 @@ It leverages the [discount](http://www.pell.portland.or.us/~orc/Code/discount/)
 library for generating a website from a set of Markdown files.
 
 # FEATURES
-* Under 300 lines of C (without counting external libraries).
+* Under 400 lines of C (without counting external libraries).
 * Incremental updates.
 * Pretty fast!
 * Almost no dependencies except for discount.
-* Portable-ish (*nix at least).
+* Portable-ish, tested on GNU/Linux, FreeBSD and Mac OS X (10.13 or higher).
+  Should theoretically work on other *nixes and Windows through MinGW.
 
 # QUICK START
 Clone this repository and enter it:
@@ -41,6 +42,23 @@ swege
 
 Your website will appear in a directory specified by the
 configuration file.
+
+# FAQ
+
+Q: **How do I force a complete rebuild of my website?**
+
+A: Delete a file called `.manifest` located in the same directory as swege.ini
+   and run swege again.
+
+Q: **How does swege determine the title of my webpage?**
+
+A: swege will use the H1 header from the first line of your .md file.
+   Alternatively, you could provide your own title by putting
+
+   `title: My Cool Title!`
+   
+   on the first line of your .md file. If you do not want the page to have a
+   title at all, simply leave the first line of the .md file blank.
 
 # LICENSE
 Copyright 2020 Sergei Akhmatdinov

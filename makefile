@@ -39,7 +39,7 @@ clean:
 	rm $(PROJECT)
 
 install:
-	cp $(PROJECT) $(PREFIX)/bin/$(PROJECT)
+	install $(PROJECT) $(PREFIX)/bin/$(PROJECT)
 
 site:
 	./$(PROJECT)
