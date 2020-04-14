@@ -46,13 +46,17 @@ configuration file.
 # FAQ
 
 Q: **How do I force a complete rebuild of my website?**
+
 A: Delete a file called `.manifest` located in the same directory as swege.ini
    and run swege again.
 
 Q: **How does swege determine the title of my webpage?**
+
 A: swege will use the H1 header from the first line of your .md file.
    Alternatively, you could provide your own title by putting
+
    `title: My Cool Title!`
+   
    on the first line of your .md file. If you do not want the page to have a
    title at all, simply leave the first line of the .md file blank.
 
