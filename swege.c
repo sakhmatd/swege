@@ -8,8 +8,8 @@
 /*									     */
 /* Unless required by applicable law or agreed to in writing, software	     */
 /* distributed under the License is distributed on an "AS IS" BASIS,	     */
-/* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.	 */
-/* See the License for the specific language governing permissions and			 */
+/* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  */
+/* See the License for the specific language governing permissions and	     */
 /* limitations under the License. */
 
 /* Includes */
@@ -50,7 +50,7 @@
 #define Match(n) (strcmp(section, INISECTION) == 0 && strcmp(name, (n)) == 0)
 
 #define PrintErr(path) do {\
-		fprintf(stderr, "'%s': %s\n", (path), strerror(errno));	\
+        fprintf(stderr, "'%s': %s\n", (path), strerror(errno));	\
         exit(errno);\
 } while(0)
 
@@ -78,7 +78,7 @@ static int dir_exists(const char *src_path);
 static int file_is_newer(const char *src_path);
 static int path_in_manifest(const char *src_path);
 
-static char *retrieve_title(FILE * in);
+static char *get_title(FILE * in);
 static char *mk_dst_path(const char *path);
 
 static void find_files(const char *src_path);
@@ -256,7 +256,7 @@ path_in_manifest(const char *src_path)
  * Empty first line would result in no title for the page.
  */
 char *
-retrieve_title(FILE * in)
+get_title(FILE * in)
 {
 	char *line = NULL;
 	size_t linecap = 0;
@@ -324,15 +324,13 @@ find_files(const char *src_path)
 	if (!src)
 		PrintErr(src_path);
 
-	for (;;) {
-		struct dirent *entry;
+	struct dirent *entry;
+	while ((entry = readdir(src))) {
 		char path[PATH_MAX];
-
-		if (!(entry = readdir(src)))
-			break;
+		char *dname = entry->d_name;
 
 		/* Ignore emacs/vim autosave files */
-		if (strstr(D_NAME, "~") || strstr(D_NAME, "#"))
+		if (dname[0] == '~' || dname[0] == '#')
 			continue;
 
 		if (strstr(D_NAME, ".md")) {
@@ -408,7 +406,7 @@ render_md(char *path)
 	/* Append the header */
 	stream_to_file(config.header_file, path);
 
-	char *page_title = retrieve_title(fd);
+	char *page_title = get_title(fd);
 	if (page_title) {
 		fprintf(out, "<title>%s - %s</title>\n", page_title,
 			config.site_title);
