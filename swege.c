@@ -47,7 +47,12 @@
 #define INIFILE "swege.ini"
 
 /* Simplify read_config() */
-#define MATCH(n) strcmp(section, INISECTION) == 0 && strcmp(name, n) == 0
+#define Match(n) (strcmp(section, INISECTION) == 0 && strcmp(name, (n)) == 0)
+
+#define PrintErr(path) do {\
+		fprintf(stderr, "'%s': %s\n", (path), strerror(errno));	\
+        exit(errno);\
+} while(0)
 
 /* Typedefs */
 typedef struct {
@@ -62,9 +67,6 @@ typedef struct {
 
 /* Prototypes */
 static void usage(void);
-static void dir_err(const char *path);
-static void file_err(const char *path);
-static void copy_err(const char *path);
 
 static int stream_to_file(const char *path, const char *new_path);
 static int copy_file(const char *path, const char *new_path);
@@ -92,7 +94,7 @@ static int files_procd = 0;
 static Config config;
 
 void
-usage(void) 
+usage(void)
 {
 	char *usage_str = "swege 1.1.0\n"
 		"Please see https://github.com/sakhmatd/swege"
@@ -101,33 +103,8 @@ usage(void)
 	exit(errno);
 }
 
-inline void
-dir_err(const char *path) 
-{
-	fprintf(stderr, "Cannot open directory '%s': %s\n", path,
-		strerror(errno));
-	exit(errno);
-}
-
-inline void
-file_err(const char *path) 
-{
-	fprintf(stderr, "Cannot access file '%s': %s\n", path,
-		strerror(errno));
-	exit(errno);
-}
-
-inline void
-copy_err(const char *path)
-{
-	fprintf(stderr, "Failed copying file '%s': %s.\n",
-			path, strerror(errno));
-
-	exit(errno);
-}
-
 /* 70's style read-write loop
- * Used for adding headers and footers 
+ * Used for adding headers and footers
  * or as a fallback copy */
 int
 stream_to_file(const char *path, const char *new_path)
@@ -135,15 +112,15 @@ stream_to_file(const char *path, const char *new_path)
 	int orig, new;
 
 	orig = open(path, O_RDONLY);
-        new = open(new_path, O_WRONLY | O_APPEND);
-	
-	char buf[BUF_SIZE] = {0};
-        size_t bytes = 0;
+	new = open(new_path, O_WRONLY | O_APPEND);
 
-        while ((bytes = read(orig, &buf, BUF_SIZE)) > 0) {
-                if (write(new, &buf, bytes) < 0) {
-                        return 0;
-                }
+	char buf[BUF_SIZE] = {0};
+	size_t bytes = 0;
+
+	while ((bytes = read(orig, &buf, BUF_SIZE)) > 0) {
+		if (write(new, &buf, bytes) < 0) {
+			return 0;
+		}
 	}
 
 	return 1;
@@ -157,13 +134,13 @@ copy_file(const char *path, const char *new_path)
 
 	orig = open(path, O_RDONLY);
 	if (orig < 0)
-		file_err(path);
+		PrintErr(path);
 
 	/* TODO: Preserve permissions */
 	new = open(new_path, O_CREAT | O_TRUNC | O_WRONLY, 0660);
 
 	if (new < 0)
-		file_err(new_path);
+		PrintErr(new_path);
 
 #ifdef __APPLE__
 	ret = fcopyfile(orig, new, 0, COPYFILE_ALL);
@@ -182,12 +159,12 @@ copy_file(const char *path, const char *new_path)
 
 #else
 	/* 70's style as a fallback */
-	ret = stream_to_file(path, new_path);	
+	ret = stream_to_file(path, new_path);
 
 #endif /* __APPLE__ */
 
 	if (ret < 0)
-		copy_err(path);
+		PrintErr(path);
 
 	close(orig);
 	close(new);
@@ -196,7 +173,7 @@ copy_file(const char *path, const char *new_path)
 }
 
 inline void
-log_file(const char *src_path) 
+log_file(const char *src_path)
 {
 	fprintf(manifest, "%s\n", src_path);
 }
@@ -211,7 +188,7 @@ make_dir(const char *path)
 }
 
 long
-file_exists(const char *src_path) 
+file_exists(const char *src_path)
 {
 	struct stat file_stat;
 	if (stat(src_path, &file_stat) == 0)
@@ -221,7 +198,7 @@ file_exists(const char *src_path)
 }
 
 int
-dir_exists(const char *src_path) 
+dir_exists(const char *src_path)
 {
 	DIR *dptr;
 	if ((dptr = opendir(src_path))) {
@@ -233,7 +210,7 @@ dir_exists(const char *src_path)
 }
 
 int
-file_is_newer(const char *src_path) 
+file_is_newer(const char *src_path)
 {
 	struct stat src_stats;
 
@@ -246,7 +223,7 @@ file_is_newer(const char *src_path)
 }
 
 int
-path_in_manifest(const char *src_path) 
+path_in_manifest(const char *src_path)
 {
 	char *line = NULL;
 	char *line_cpy;
@@ -279,7 +256,7 @@ path_in_manifest(const char *src_path)
  * Empty first line would result in no title for the page.
  */
 char *
-retrieve_title(FILE * in) 
+retrieve_title(FILE * in)
 {
 	char *line = NULL;
 	size_t linecap = 0;
@@ -329,7 +306,7 @@ retrieve_title(FILE * in)
 }
 
 char *
-mk_dst_path(const char *path) 
+mk_dst_path(const char *path)
 {
 	static char ret[PATH_MAX];
 	size_t namelen = strlen(config.src_dir);
@@ -341,11 +318,11 @@ mk_dst_path(const char *path)
 }
 
 void
-find_files(const char *src_path) 
+find_files(const char *src_path)
 {
 	DIR *src = opendir(src_path);
 	if (!src)
-		dir_err(src_path);
+		PrintErr(src_path);
 
 	for (;;) {
 		struct dirent *entry;
@@ -412,11 +389,11 @@ find_files(const char *src_path)
 }
 
 void
-render_md(char *path) 
+render_md(char *path)
 {
 	FILE *fd = fopen(path, "r");
 	if (!fd)
-		file_err(path);
+		PrintErr(path);
 
 	path[strlen(path) - 3] = 0;	/* Remove the extention */
 	snprintf(path, PATH_MAX, "%s.html", mk_dst_path(path));
@@ -426,9 +403,9 @@ render_md(char *path)
 	freopen(path, "a", out);
 
 	if (!out)
-		file_err(path);
+		PrintErr(path);
 
-        /* Append the header */
+	/* Append the header */
 	stream_to_file(config.header_file, path);
 
 	char *page_title = retrieve_title(fd);
@@ -447,7 +424,7 @@ render_md(char *path)
 	fclose(fd);
 	fclose(out);
 
-        /* Append the footer */
+	/* Append the footer */
 	stream_to_file(config.footer_file, path);
 
 	files_procd++;
@@ -455,19 +432,19 @@ render_md(char *path)
 
 int
 read_config(void *user, const char *section, const char *name,
-	    const char *value) 
+	    const char *value)
 {
 	Config *pconfig = (Config *) user;
 
-	if (MATCH("title")) {
+	if (Match("title")) {
 		pconfig->site_title = strdup(value);
-	} else if (MATCH("source")) {
+	} else if (Match("source")) {
 		pconfig->src_dir = strdup(value);
-	} else if (MATCH("destination")) {
+	} else if (Match("destination")) {
 		pconfig->dst_dir = strdup(value);
-	} else if (MATCH("header")) {
+	} else if (Match("header")) {
 		pconfig->header_file = strdup(value);
-	} else if (MATCH("footer")) {
+	} else if (Match("footer")) {
 		pconfig->footer_file = strdup(value);
 	} else {
 		return 0;	/* unknown section/name, error */
@@ -477,7 +454,7 @@ read_config(void *user, const char *section, const char *name,
 }
 
 int
-main(int argc, char *argv[]) 
+main(int argc, char *argv[])
 {
 	(void)argv;	/* Suppress compiler warning about unused argv */
 	if (argc >= 2)

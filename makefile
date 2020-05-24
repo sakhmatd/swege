@@ -18,7 +18,7 @@ LIBS = -L/usr/local/lib -lmarkdown
 PROJECT = swege
 
 all:
-	$(CC) $(CFLAGS) $(INCLUDES) $(LIBS) *.c -o $(PROJECT)
+	$(CC) $(CFLAGS) -O3 $(INCLUDES) $(LIBS) *.c -o $(PROJECT)
 
 debug: 
 	$(CC) $(CFLAGS) -g $(INCLUDES) $(LIBS) *.c -o $(PROJECT)
