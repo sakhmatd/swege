@@ -39,19 +39,21 @@
 /* Constants and Macros */
 #define BUF_SIZE 3145728 /* Change if your stack is smaller */
 #define TITLE_SIZE 50
-#define D_NAME entry->d_name
 
 #define MANIFESTF ".manifest"
 
 #define INISECTION "swege"
 #define INIFILE "swege.ini"
 
+#define HEAD_FOOT_UPDATE (file_is_newer(config.footer_file) || \
+			  file_is_newer(config.header_file))
+
 /* Simplify read_config() */
 #define Match(n) (strcmp(section, INISECTION) == 0 && strcmp(name, (n)) == 0)
 
 #define PrintErr(path) do {\
-        fprintf(stderr, "'%s': %s\n", (path), strerror(errno));	\
-        exit(errno);\
+	fprintf(stderr, "'%s': %s\n", (path), strerror(errno));	\
+	exit(errno);\
 } while(0)
 
 /* Typedefs */
@@ -89,7 +91,6 @@ static int read_config(void *user, const char *section, const char *name,
 /* Global variables */
 static FILE *manifest;
 static long manifest_time = 0;
-static int head_foot_updated = 0;
 static int files_procd = 0;
 static Config config;
 
@@ -333,39 +334,36 @@ find_files(const char *src_path)
 		if (dname[0] == '~' || dname[0] == '#')
 			continue;
 
-		if (strstr(D_NAME, ".md")) {
-			snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
+		if (strstr(config.footer_file, dname) &&
+		    strstr(config.header_file, dname))
+			continue;
+
+		snprintf(path, PATH_MAX, "%s/%s", src_path, dname);
+
+		if (strstr(dname, ".md")) {
+
+			if (!path_in_manifest(path))
+				log_file(path);
+			if (!(file_is_newer(path) || HEAD_FOOT_UPDATE))
+				continue;
+			render_md(path);
+
+		} else if (entry->d_type & DT_DIR) {
+
+			if (strcmp(dname, "..") != 0 && strcmp(dname, ".") != 0)
+				continue;
+
 			if (path_in_manifest(path)) {
-				if (file_is_newer(path) || head_foot_updated) {
-					printf("%s\n", path);
-					render_md(path);
-				}
+				find_files(path);
 			} else {
+				make_dir(mk_dst_path(path));
 				log_file(path);
 				printf("%s\n", path);
-				render_md(path);
+				find_files(path);
 			}
-		} else if (entry->d_type & DT_DIR) {
-			if (strcmp(D_NAME, "..") != 0
-			    && strcmp(D_NAME, ".") != 0) {
-				snprintf(path, PATH_MAX, "%s/%s", src_path,
-					 D_NAME);
-				if (path_in_manifest(path)) {
-					snprintf(path, PATH_MAX, "%s/%s",
-						 src_path, D_NAME);
-					find_files(path);
-				} else {
-					make_dir(mk_dst_path(path));
-					snprintf(path, PATH_MAX, "%s/%s",
-						 src_path, D_NAME);
-					log_file(path);
-					printf("%s\n", path);
-					find_files(path);
-				}
-			}
-		} else if (!strstr(config.footer_file, D_NAME) &&
-			   !strstr(config.header_file, D_NAME)) {
-			snprintf(path, PATH_MAX, "%s/%s", src_path, D_NAME);
+
+		} else {
+
 			if (path_in_manifest(path)) {
 				if (file_is_newer(path)) {
 					printf("%s\n", path);
@@ -376,6 +374,7 @@ find_files(const char *src_path)
 				printf("%s\n", path);
 				copy_file(path, mk_dst_path(path));
 			}
+
 		}
 	}
 
@@ -389,6 +388,8 @@ find_files(const char *src_path)
 void
 render_md(char *path)
 {
+	printf("%s\n", path);
+
 	FILE *fd = fopen(path, "r");
 	if (!fd)
 		PrintErr(path);
@@ -472,10 +473,6 @@ main(int argc, char *argv[])
 	/* mtime gets updated with fopen, so we need to save previous mtime */
 	/* File exists returns current mtime of the file or 0 if it doesn't exist */
 	manifest_time = file_exists(MANIFESTF);
-
-	/* Force updating manifest if footer or header files are updated */
-	head_foot_updated = (file_is_newer(config.footer_file) ||
-			     file_is_newer(config.header_file));
 
 	if (manifest_time) {
 		manifest = fopen(MANIFESTF, "a+");
