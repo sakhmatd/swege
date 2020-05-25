@@ -334,7 +334,7 @@ find_files(const char *src_path)
 		if (dname[0] == '~' || dname[0] == '#')
 			continue;
 
-		if (strstr(config.footer_file, dname) &&
+		if (strstr(config.footer_file, dname) ||
 		    strstr(config.header_file, dname))
 			continue;
 
@@ -350,39 +350,32 @@ find_files(const char *src_path)
 
 		} else if (entry->d_type & DT_DIR) {
 
-			if (strcmp(dname, "..") != 0 && strcmp(dname, ".") != 0)
+			if (!strcmp(dname, "..") || !strcmp(dname, "."))
 				continue;
 
-			if (path_in_manifest(path)) {
-				find_files(path);
-			} else {
+			if (!path_in_manifest(path)) {
 				make_dir(mk_dst_path(path));
 				log_file(path);
 				printf("%s\n", path);
-				find_files(path);
 			}
+			find_files(path);
 
 		} else {
 
-			if (path_in_manifest(path)) {
-				if (file_is_newer(path)) {
-					printf("%s\n", path);
-					copy_file(path, mk_dst_path(path));
-				}
-			} else {
+			if (!path_in_manifest(path)) {
 				log_file(path);
-				printf("%s\n", path);
-				copy_file(path, mk_dst_path(path));
 			}
 
+			if (!file_is_newer(path))
+				continue;
+
+			printf("%s\n", path);
+			copy_file(path, mk_dst_path(path));
 		}
 	}
 
-	if (closedir(src)) {
-		fprintf(stderr, "Cannot close directory '%s': %s\n", src_path,
-			strerror(errno));
-		exit(errno);
-	}
+	if (closedir(src) < 0)
+		PrintErr(src_path);
 }
 
 void
