@@ -15,3 +15,4 @@ library for generating a website from a set of Markdown files.
 ### Example pages:
 
 * [Lorem Ipsum](posts/lorem.html)
+* [Different ways to generate a title](posts/title.html)
