@@ -263,16 +263,12 @@ get_title(FILE * in)
 	size_t linecap = 0;
 	getline(&line, &linecap, in);
 
-	if (!line) {
-		fprintf(stderr, "Can't allocate memory: line\n");
-		exit(errno);
-	}
+	if (!line)
+		PrintErr("get_title.line");
 
 	char *ret = malloc(sizeof(char) * (TITLE_SIZE + 1));
-	if (!ret) {
-		fprintf(stderr, "Can't allocate memory: ret\n");
-		exit(errno);
-	}
+	if (!ret)
+		PrintErr("get_title.ret");
 
 	if (strstr(line, "title: ")) {
 		char *piece = NULL;
@@ -286,21 +282,20 @@ get_title(FILE * in)
 				strncat(ret, " ", (TITLE_SIZE - strlen(ret)));
 			}
 		}
-
-		/* Remove trailing newline and whitespace */
-		*strrchr(ret, ' ') = 0;
-		ret[strcspn(ret, "\n")] = 0;
 	} else if (strlen(line) >= 3 && line[0] == '#') {
-		strncpy(ret, line + 2, (TITLE_SIZE + 1));	/* Copy line without the # */
+		/* Copy line without the # */
+		strncpy(ret, line + 2, (TITLE_SIZE + 1));
 		ret[TITLE_SIZE] = '\0';	/* Ensure termination */
 
-		ret[strcspn(ret, "\n")] = 0;	/* Remove trailing newline */
 		rewind(in);	/* Leave H1 in place for rendering */
 	} else {
 		free(line);
 		free(ret);
 		return NULL;
 	}
+
+	/* Remove trailing newline */
+	ret[strcspn(ret, "\n")] = 0;
 
 	free(line);
 	return ret;
