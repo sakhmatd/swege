@@ -214,7 +214,6 @@ int
 file_is_newer(const char *src_path)
 {
 	struct stat src_stats;
-
 	stat(src_path, &src_stats);
 
 	if (src_stats.st_mtime > manifest_time)
@@ -387,8 +386,10 @@ render_md(char *path)
 
 	/* Blank out former file contents */
 	FILE *out = fopen(path, "w");
-	freopen(path, "a", out);
+	if (!out)
+		PrintErr(path);
 
+	out = freopen(path, "a", out);
 	if (!out)
 		PrintErr(path);
 
