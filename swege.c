@@ -79,6 +79,7 @@ static long file_exists(const char *src_path);
 static int dir_exists(const char *src_path);
 static int file_is_newer(const char *src_path);
 static int path_in_manifest(const char *src_path);
+static int cmp_ext(const char *dname, const char *ext);
 
 static char *get_title(FILE * in);
 static char *mk_dst_path(const char *path);
@@ -193,7 +194,7 @@ file_exists(const char *src_path)
 {
 	struct stat file_stat;
 	if (stat(src_path, &file_stat) == 0)
-		return file_stat.st_mtime;
+		return file_stat.st_ctime;
 
 	return 0;
 }
@@ -216,7 +217,7 @@ file_is_newer(const char *src_path)
 	struct stat src_stats;
 	stat(src_path, &src_stats);
 
-	if (src_stats.st_mtime > manifest_time)
+	if (src_stats.st_ctime > manifest_time)
 		return 1;
 
 	return 0;
@@ -248,6 +249,17 @@ path_in_manifest(const char *src_path)
 
 	free(line);
 	return 0;
+}
+
+/**
+ * Compares the extention of the file.
+ */
+int
+cmp_ext(const char *dname, const char *ext)
+{
+	const char *dpos = strrchr(dname, '.');
+	const char *fext = (!dpos || !strcmp(dname, dpos)) ? "" : dpos + 1;
+	return !(strcmp(ext, fext));
 }
 
 /**
@@ -334,12 +346,14 @@ find_files(const char *src_path)
 
 		snprintf(path, PATH_MAX, "%s/%s", src_path, dname);
 
-		if (strstr(dname, ".md")) {
+		if (cmp_ext(dname, "md")) {
 
 			if (!path_in_manifest(path))
 				log_file(path);
+
 			if (!(file_is_newer(path) || HEAD_FOOT_UPDATE))
 				continue;
+
 			render_md(path);
 
 		} else if (entry->d_type & DT_DIR) {
@@ -459,13 +473,13 @@ main(int argc, char *argv[])
 		mkdir(config.dst_dir, 0755);
 	umask(default_mode);
 
-	/* mtime gets updated with fopen, so we need to save previous mtime */
-	/* File exists returns current mtime of the file or 0 if it doesn't exist */
+	/* ctime gets updated with fopen, so we need to save previous ctime */
+	/* File exists returns current ctime of the file or 0 if it doesn't exist */
 	manifest_time = file_exists(MANIFESTF);
 
 	if (manifest_time) {
 		manifest = fopen(MANIFESTF, "a+");
-		futimens(fileno(manifest), NULL);	/* update manifest mtime */
+		futimens(fileno(manifest), NULL);	/* update manifest ctime */
 	} else {
 		manifest = fopen(MANIFESTF, "w+");
 	}
