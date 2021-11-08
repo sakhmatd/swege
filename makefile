@@ -44,5 +44,9 @@ install:
 	install $(PROJECT) $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
 	cp -r example $(DESTDIR)$(PREFIX)/share/doc/$(PROJECT)
 
+uninstall:
+	rm -r $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
+	rm -r $(DESTDIR)$(PREFIX)/share/doc/$(PROJECT)
+
 site:
 	./$(PROJECT)
