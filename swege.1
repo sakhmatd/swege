@@ -1,0 +1,88 @@
+.TH SWEGE 1 "8 November 2021" "Version 1.1.2" "Static WEbsite GEnerator"
+.SH NAME
+swege - generate a static website
+.SH SYNOPSIS
+.B swege
+.SH DESCRIPTION
+.B swege
+is a simple static website generator.
+Each page is meant to be written in
+Markdown, which is then translated into HTML.
+However you are allowed to use HTML syntax within Markdown files as well as
+writing pure HTML files, these will remain unchanged.
+.PP
+Here is an example project structure for your site:
+.sp
+.B	site_folder/
+.br
+.B		|- src/
+<-- All of your site source files
+.br
+.B			|- _header.html
+<-- Appended atop each page
+.br
+.B			|- _footer.html
+<-- Appended to the bottom of each page
+.br
+.B			|- index.md
+<-- Translated into HTML, like all *.md files
+.br
+.B		|- site/
+<-- Website folder populated by swege
+.br
+.B		|- swege.ini
+<-- Swege configuration
+.PP
+If you
+.BR cd (1)
+into site_folder/ and run swege, it will take all Markdown files (index.md in
+this case), convert them into HTML, append the header along with the footer,
+and put the result in the same plase inside site/ folder.
+.sp
+----------------     ----------------
+.br
+| _header.html |     |              |
+.br
+----------------     |              |
+.br
+|              |     |              |
+.br
+| index.md     | --> | index.html   | --> site_folder/site/index.html
+.br
+|              |     |              |
+.br
+----------------     |              |
+.br
+| _footer.html |     |              |
+.br
+----------------     ----------------
+.PP
+Let us observe the contents of swege.ini:
+.PP
+.B [swege]
+.br
+.B title = My Website
+<-- Becomes <title>My Website</title> inside index.html
+.br
+.B source = src
+<-- Website sources folder path
+.br
+.B destination = site
+<-- Generated website folder path
+.br
+.B header = src/_header.html
+<-- The header file path
+.br
+.B footer = src/_footer.html
+<-- The footer file path
+.PP
+You should also know swege is smart enough to keep track of changes, so that
+the next time you run it, unchanged files will not be processed. In order to
+force a complete rebuild of your website, delete a file called
+.B .manifest
+located in the same directory as swege.ini and run swege again.
+.SH FILES
+.B /usr/local/share/swege/doc
+(depends on installation prefix) simple swege project example
+.SH AUTHOR
+Sergei Akhmatdinov <sakhmatd@darkn.space>
