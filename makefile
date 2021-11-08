@@ -41,12 +41,15 @@ clean:
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/share/doc/$(PROJECT)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
+	mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
 	install $(PROJECT) $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
 	cp -r example $(DESTDIR)$(PREFIX)/share/doc/$(PROJECT)
+	cp $(PROJECT).1 $(DESTDIR)$(PREFIX)/share/man/man1
 
 uninstall:
 	rm -r $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
 	rm -r $(DESTDIR)$(PREFIX)/share/doc/$(PROJECT)
+	rm $(DESTDIR)$(PREFIX)/share/man/man1/$(PROJECT).1
 
 site:
 	./$(PROJECT)
