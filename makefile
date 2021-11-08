@@ -50,3 +50,5 @@ uninstall:
 
 site:
 	./$(PROJECT)
+
+.PHONY: all debug gdb memcheck memcheck_v memcheck_full clean install uninstall site
