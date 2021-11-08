@@ -85,7 +85,6 @@ Contains parts of ini.h, licensed under the BSD 3-clause license.
 Many thanks to David Parsons for the Discount library.
 
 # BUGS/TODO
-* Better documentation.
 * Windows support?
 
 # CONTRIBUTING
