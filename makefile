@@ -39,7 +39,10 @@ clean:
 	rm $(PROJECT)
 
 install:
-	install $(PROJECT) $(PREFIX)/bin/$(PROJECT)
+	mkdir -p $(DESTDIR)$(PREFIX)/share/doc/$(PROJECT)
+	mkdir -p $(DESTDIR)$(PREFIX)/bin
+	install $(PROJECT) $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
+	cp -r example $(DESTDIR)$(PREFIX)/share/doc/$(PROJECT)
 
 site:
 	./$(PROJECT)
