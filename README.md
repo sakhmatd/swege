@@ -66,7 +66,7 @@ Q: **How does swege determine the title of my webpage?**
    The example site uses both methods. 
 
 # LICENSE
-Copyright 2020 Sergei Akhmatdinov
+Copyright 2022 Sergei Akhmatdinov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 You may obtain a copy of the License at
