@@ -42,7 +42,8 @@
 
 #define MANIFESTF ".manifest"
 
-#define CSVFILE "swege.csv"
+#define CFGFILE "swege.cfg" /* Config file name. */
+#define CFGDLIM ":" /* Config file option-value delimiter. */
 
 #define HEAD_FOOT_UPDATE (file_is_newer(config.footer_file) || \
 			  file_is_newer(config.header_file))
@@ -428,51 +429,42 @@ render_md(char *path)
 }
 
 /*
- * Parses 'swege.csv' config file.
+ * Parses 'swege.cfg' config file.
  * Returns 1 if everything goes well, and 0 otherwise.
  */
 int
 read_config(const char *path)
 {
-	char buf[BUF_CONF];
-	char *tmp;
+	char buf[BUF_CONF]; /* To read config lines into, for fgets(). */
+	char *tok; /* To keep track of the delimiter, for strtok(). */
 	FILE *config_fp;
 	config_fp = fopen(path, "r");
 	if (!config_fp)
 		PrintErr(path);
 
 	while (fgets(buf, BUF_CONF, config_fp)) {
-		tmp = strchr(buf, '\n');
-		if (tmp)
-			*tmp = '\0'; /* Discard the newline character if found. */
-
-		tmp = strchr(buf, ',');
-		if (tmp)
-			*tmp = '\0'; /* Separate values. */
-		else  /* Invalid config, ',' not found. */
-			break;
-
-		if (!strcmp("title", buf)) {
-			config.site_title = strdup(tmp+1);
+		tok = strtok(buf, CFGDLIM);
+		if (!strcmp("title", tok)) {
+			config.site_title = strdup(strtok(NULL, CFGDLIM"\n"));
 			continue;
 		}
-		if (!strcmp("source", buf)) {
-			config.src_dir = strdup(tmp+1);
+		if (!strcmp("source", tok)) {
+			config.src_dir = strdup(strtok(NULL, CFGDLIM"\n"));
 			continue;
 		}
-		if (!strcmp("destination", buf)) {
-			config.dst_dir = strdup(tmp+1);
+		if (!strcmp("destination", tok)) {
+			config.dst_dir = strdup(strtok(NULL, CFGDLIM"\n"));
 			continue;
 		}
-		if (!strcmp("header", buf)) {
-			config.header_file = strdup(tmp+1);
+		if (!strcmp("header", tok)) {
+			config.header_file = strdup(strtok(NULL, CFGDLIM"\n"));
 			continue;
 		}
-		if (!strcmp("footer", buf)) {
-			config.footer_file = strdup(tmp+1);
+		if (!strcmp("footer", tok)) {
+			config.footer_file = strdup(strtok(NULL, CFGDLIM"\n"));
 			continue;
 		}
-		/* Ignore unknown entry. */
+		/* Ignore unknown entries. */
 	}
 	fclose(config_fp);
 
@@ -502,8 +494,8 @@ main(int argc, char *argv[])
 	if (argc >= 2)
 		usage();
 
-	if (!read_config(CSVFILE)) {
-		printf("Invalid 'swege.csv'\n");
+	if (!read_config(CFGFILE)) {
+		printf("Invalid "CFGFILE"\n");
 		return 1;
 	}
 
