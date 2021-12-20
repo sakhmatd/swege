@@ -1,4 +1,4 @@
-![swege](https://sakhmatd.ru/assets/img/swege_banner.png)
+![swege](https://sakhmatd.ee/assets/img/swege_banner.png)
 
 swege is a Static WEbsite GEnerator written in C.
 
