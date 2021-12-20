@@ -1,4 +1,4 @@
-CC = cc
+CC ?= cc
 
 CFLAGS  = -std=c99
 CFLAGS += -pedantic
@@ -11,7 +11,7 @@ CFLAGS += -Wundef
 
 CFLAGS += -D_DEFAULT_SOURCE
 
-PREFIX = /usr/local
+PREFIX ?= /usr/local
 INCLUDES = -I/usr/local/include
 LIBS = -L/usr/local/lib -lmarkdown
 
@@ -39,7 +39,13 @@ clean:
 	rm $(PROJECT)
 
 install:
-	install $(PROJECT) $(PREFIX)/bin/$(PROJECT)
+	mkdir -p $(DESTDIR)$(PREFIX)/bin
+	install $(PROJECT) $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
+
+uninstall:
+	rm $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
 
 site:
 	./$(PROJECT)
+
+.PHONY: all debug gdb memcheck memcheck_v memcheck_full clean install uninstall site
