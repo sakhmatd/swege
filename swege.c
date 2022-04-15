@@ -468,7 +468,7 @@ read_config(const char *path)
 	}
 	fclose(config_fp);
 
-	/* Check whether all option have been found/assigned. */
+	/* Check whether all options have been found/assigned. */
 	if (
 		config.site_title &&
 		config.src_dir &&
