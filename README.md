@@ -6,8 +6,8 @@ It leverages the [discount](http://www.pell.portland.or.us/~orc/Code/discount/)
 library for generating a website from a set of Markdown files.
 
 # FEATURES
-* Under 400 lines of C (without counting external libraries).
-* Incremental updates.
+* Under 500 lines of C!
+* Incremental updates!
 * Pretty fast!
 * Almost no dependencies except for discount.
 * Portable-ish, tested on GNU/Linux, FreeBSD and Mac OS X (10.13 or higher).
@@ -47,8 +47,8 @@ configuration file.
 
 Q: **How do I force a complete rebuild of my website?**
 
-* Delete a file called `.manifest` located in the same directory as swege.ini
-  and run swege again.
+* Run `swege rebuild`. Alternatively, delete a file called `.manifest` located
+  in the same directory as swege.ini and run swege again.
 
 Q: **How does swege determine the title of my webpage?**
 
