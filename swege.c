@@ -45,8 +45,9 @@
 #define CFGFILE "swege.cfg" /* Config file name. */
 #define CFGDLIM ":" /* Config file option-value delimiter. */
 
-#define HEAD_FOOT_UPDATE (file_is_newer(config.footer_file) || \
-			  file_is_newer(config.header_file))
+#define FORCE_UPDATE (file_is_newer(config.footer_file) || \
+			  file_is_newer(config.header_file) || \
+			  file_is_newer(CFGFILE))
 
 #define PrintErr(path) do {\
 	fprintf(stderr, "'%s': %s\n", (path), strerror(errno));	\
@@ -90,6 +91,7 @@ static void destroy_config(Config *cfg);
 static FILE *manifest;
 static long manifest_time = 0;
 static int files_procd = 0;
+static int update = 0;
 static Config config;
 
 void
@@ -348,7 +350,7 @@ find_files(const char *src_path)
 			if (!path_in_manifest(path))
 				log_file(path);
 
-			if (!(file_is_newer(path) || HEAD_FOOT_UPDATE))
+			if (!(file_is_newer(path)) && !update)
 				continue;
 
 			render_md(path);
@@ -518,6 +520,8 @@ main(int argc, char *argv[])
 		mkdir(config.dst_dir, 0755);
 	umask(default_mode);
 
+	
+
 	/* ctime gets updated with fopen, so we need to save previous ctime */
 	/* File exists returns current ctime of the file or 0 if it doesn't exist */
 	manifest_time = file_exists(MANIFESTF);
@@ -527,6 +531,13 @@ main(int argc, char *argv[])
 		futimens(fileno(manifest), NULL);	/* update manifest ctime */
 	} else {
 		manifest = fopen(MANIFESTF, "w+");
+	}
+	
+	/* Check if we need to force update (config or header/footer changed */
+	if (FORCE_UPDATE) {
+		printf("Header, footer or config file changed,"
+				" forcing update\n");
+		update = 1;
 	}
 
 	find_files(config.src_dir);
