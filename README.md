@@ -84,6 +84,9 @@ Contains parts of ini.h, licensed under the BSD 3-clause license.
 # CREDITS
 Many thanks to David Parsons for the Discount library.
 
+Thanks to [@unInstance](https://github.com/unInstance) for several 
+contributions.
+
 # BUGS/TODO
 * Better documentation.
 * Windows support?
