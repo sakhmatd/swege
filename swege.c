@@ -95,9 +95,9 @@ static Config config;
 void
 usage(void)
 {
-	char *usage_str = "swege 1.1.2\n"
+	char *usage_str = "swege 1.2.0\n"
 		"Please see https://github.com/sakhmatd/swege"
-		" for detailed usage instructions.\n";
+		" for more detailed usage instructions.\n";
 	fprintf(stderr, "%s", usage_str);
 	exit(errno);
 }
@@ -500,9 +500,12 @@ destroy_config(Config *cfg)
 int
 main(int argc, char *argv[])
 {
-	(void)argv;	/* Suppress compiler warning about unused argv */
-	if (argc >= 2)
-		usage();
+	if (argc >= 2) {
+		if (!strcmp("rebuild", argv[1]))
+			remove(".manifest");
+		else
+			usage();
+	}
 
 	if (!read_config(CFGFILE)) {
 		printf("Invalid "CFGFILE"\n");
@@ -531,7 +534,8 @@ main(int argc, char *argv[])
 	if (files_procd)
 		printf("%d files/directories processed.\n", files_procd);
 	else
-		printf("No changes or new files detected, site is up to date.\n");
+		printf("No changes or new files detected, site is up to date.\n"
+				"Run 'swege rebuild' to force a rebuild.\n");
 
 	destroy_config(&config); /* Free config strings */	
 	fclose(manifest);
