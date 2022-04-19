@@ -27,7 +27,6 @@
 #include <unistd.h>
 
 #include <mkdio.h>
-#include "ini.h"
 
 /* For copy_file() */
 #ifdef __APPLE__
@@ -38,18 +37,16 @@
 
 /* Constants and Macros */
 #define BUF_SIZE 3145728 /* Change if your stack is smaller */
+#define BUF_CONF 128 /* Buffer to read config file */
 #define TITLE_SIZE 50
 
 #define MANIFESTF ".manifest"
 
-#define INISECTION "swege"
-#define INIFILE "swege.ini"
+#define CFGFILE "swege.cfg" /* Config file name. */
+#define CFGDLIM ":" /* Config file option-value delimiter. */
 
 #define HEAD_FOOT_UPDATE (file_is_newer(config.footer_file) || \
 			  file_is_newer(config.header_file))
-
-/* Simplify read_config() */
-#define Match(n) (strcmp(section, INISECTION) == 0 && strcmp(name, (n)) == 0)
 
 #define PrintErr(path) do {\
 	fprintf(stderr, "'%s': %s\n", (path), strerror(errno));	\
@@ -86,8 +83,7 @@ static char *mk_dst_path(const char *path);
 
 static void find_files(const char *src_path);
 static void render_md(char *path);
-static int read_config(void *user, const char *section, const char *name,
-		       const char *value);
+static int read_config(const char *path);
 
 /* Global variables */
 static FILE *manifest;
@@ -432,27 +428,63 @@ render_md(char *path)
 	files_procd++;
 }
 
+/*
+ * Parses 'swege.cfg' config file.
+ * Returns 1 if everything goes well, and 0 otherwise.
+ */
 int
-read_config(void *user, const char *section, const char *name,
-	    const char *value)
+read_config(const char *path)
 {
-	Config *pconfig = (Config *) user;
+	char buf[BUF_CONF]; /* To read config lines into, for fgets(). */
+	char *tok; /* To keep track of the delimiter, for strtok(). */
+	FILE *config_fp;
+	config_fp = fopen(path, "r");
+	if (!config_fp)
+		PrintErr(path);
 
-	if (Match("title")) {
-		pconfig->site_title = strdup(value);
-	} else if (Match("source")) {
-		pconfig->src_dir = strdup(value);
-	} else if (Match("destination")) {
-		pconfig->dst_dir = strdup(value);
-	} else if (Match("header")) {
-		pconfig->header_file = strdup(value);
-	} else if (Match("footer")) {
-		pconfig->footer_file = strdup(value);
-	} else {
-		return 0;	/* unknown section/name, error */
+	while (fgets(buf, BUF_CONF, config_fp)) {
+		tok = strtok(buf, CFGDLIM);
+		if (!strcmp("title", tok)) {
+			config.site_title = strdup(strtok(NULL, CFGDLIM"\n"));
+			continue;
+		}
+		if (!strcmp("source", tok)) {
+			config.src_dir = strdup(strtok(NULL, CFGDLIM"\n"));
+			continue;
+		}
+		if (!strcmp("destination", tok)) {
+			config.dst_dir = strdup(strtok(NULL, CFGDLIM"\n"));
+			continue;
+		}
+		if (!strcmp("header", tok)) {
+			config.header_file = strdup(strtok(NULL, CFGDLIM"\n"));
+			continue;
+		}
+		if (!strcmp("footer", tok)) {
+			config.footer_file = strdup(strtok(NULL, CFGDLIM"\n"));
+			continue;
+		}
+		/* Ignore unknown entries. */
 	}
+	fclose(config_fp);
 
-	return 1;
+	/* Check whether all options have been found/assigned. */
+	if (
+		config.site_title &&
+		config.src_dir &&
+		config.dst_dir &&
+		config.header_file &&
+		config.footer_file
+	) {
+		return 1;
+	} else {
+		free(config.site_title);
+		free(config.src_dir);
+		free(config.dst_dir);
+		free(config.header_file);
+		free(config.footer_file);
+		return 0;
+	}
 }
 
 int
@@ -462,8 +494,8 @@ main(int argc, char *argv[])
 	if (argc >= 2)
 		usage();
 
-	if (ini_parse(INIFILE, read_config, &config) < 0) {
-		printf("Can't load 'swege.ini'\n");
+	if (!read_config(CFGFILE)) {
+		printf("Invalid "CFGFILE"\n");
 		return 1;
 	}
 
@@ -491,5 +523,10 @@ main(int argc, char *argv[])
 	else
 		printf("No changes or new files detected, site is up to date.\n");
 
+	free(config.site_title);
+	free(config.src_dir);
+	free(config.dst_dir);
+	free(config.header_file);
+	free(config.footer_file);
 	fclose(manifest);
 }
