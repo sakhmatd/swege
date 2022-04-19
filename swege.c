@@ -84,6 +84,7 @@ static char *mk_dst_path(const char *path);
 static void find_files(const char *src_path);
 static void render_md(char *path);
 static int read_config(const char *path);
+static void destroy_config(Config *cfg);
 
 /* Global variables */
 static FILE *manifest;
@@ -478,13 +479,19 @@ read_config(const char *path)
 	) {
 		return 1;
 	} else {
-		free(config.site_title);
-		free(config.src_dir);
-		free(config.dst_dir);
-		free(config.header_file);
-		free(config.footer_file);
+		destroy_config(&config);	
 		return 0;
 	}
+}
+
+void
+destroy_config(Config *cfg)
+{
+	free(cfg->site_title);
+	free(cfg->src_dir);
+	free(cfg->dst_dir);
+	free(cfg->header_file);
+	free(cfg->footer_file);
 }
 
 int
@@ -523,10 +530,6 @@ main(int argc, char *argv[])
 	else
 		printf("No changes or new files detected, site is up to date.\n");
 
-	free(config.site_title);
-	free(config.src_dir);
-	free(config.dst_dir);
-	free(config.header_file);
-	free(config.footer_file);
+	destroy_config(&config); /* Free config strings */	
 	fclose(manifest);
 }
