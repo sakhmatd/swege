@@ -36,7 +36,7 @@
 #endif /* __APPLE__ */
 
 /* Constants and Macros */
-#define BUF_SIZE 3145728 /* Change if your stack is smaller */
+#define BUF_SIZE 1048576 /* Change if your stack is smaller */
 #define BUF_CONF 128 /* Buffer to read config file */
 #define TITLE_SIZE 50
 
