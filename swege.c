@@ -523,5 +523,10 @@ main(int argc, char *argv[])
 	else
 		printf("No changes or new files detected, site is up to date.\n");
 
+	free(config.site_title);
+	free(config.src_dir);
+	free(config.dst_dir);
+	free(config.header_file);
+	free(config.footer_file);
 	fclose(manifest);
 }
