@@ -393,7 +393,10 @@ render_md(char *path)
 		PrintErr(path);
 
 	path[strlen(path) - 3] = 0;	/* Remove the extention */
-	snprintf(path, PATH_MAX, "%s.html", mk_dst_path(path));
+	int pathret = snprintf(path, PATH_MAX, "%s.html", mk_dst_path(path));
+	if (pathret < 0) {
+		printf("Path was too long!\n");
+	}
 
 	/* Blank out former file contents */
 	FILE *out = fopen(path, "w");
