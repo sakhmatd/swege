@@ -32,7 +32,7 @@ Copy the example directory to a location of choice:
 
 `cp -r example ~/mycoolsite`
 
-Enter your directory, edit swege.ini and run swege:
+Enter your directory, edit swege.cfg and run swege:
 
 ```
 cd ~/mycoolsite
@@ -78,8 +78,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
-Contains parts of ini.h, licensed under the BSD 3-clause license.
 
 # CREDITS
 Many thanks to David Parsons for the Discount library.
