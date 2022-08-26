@@ -36,7 +36,7 @@ Enter your directory, edit swege.ini and run swege:
 
 ```
 cd ~/mycoolsite
-$EDITOR swege.ini
+$EDITOR swege.cfg
 swege
 ```
 
@@ -48,7 +48,7 @@ configuration file.
 Q: **How do I force a complete rebuild of my website?**
 
 * Run `swege rebuild`. Alternatively, delete a file called `.manifest` located
-  in the same directory as swege.ini and run swege again.
+  in the same directory as swege.cfg and run swege again.
 
 Q: **How does swege determine the title of my webpage?**
 
