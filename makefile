@@ -1,3 +1,5 @@
+THREADS = true
+
 CC ?= cc
 
 CFLAGS  = -std=c99
@@ -15,6 +17,11 @@ PREFIX ?= /usr/local
 INCLUDES = -I/usr/local/include
 LIB_PATH = -L/usr/local/lib
 LIBS = -lmarkdown
+
+ifeq ($(THREADS), true)
+	CFLAGS += -DTHREADS
+	LIBS += -lpthread
+endif
 
 PROJECT = swege
 
