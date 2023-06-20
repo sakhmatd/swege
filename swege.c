@@ -114,7 +114,7 @@ static Config config;
 void
 usage(void)
 {
-	char *usage_str = "swege 1.2.0\n"
+	char *usage_str = "swege 2.0.0\n"
 		"Please see https://github.com/sakhmatd/swege"
 		" for more detailed usage instructions.\n";
 	fprintf(stderr, "%s", usage_str);
