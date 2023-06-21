@@ -42,9 +42,7 @@
 
 /* Constants and Macros */
 #ifdef THREADS
-#ifndef NUMTHREADS
-#define NUMTHREADS 10
-#endif
+#define NUMTHREADS 30
 #endif
 
 #define BUF_SIZE 1048576	/* Change if your stack is smaller */
