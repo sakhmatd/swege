@@ -14,12 +14,18 @@ library for generating a website from a set of Markdown files.
   Should theoretically work on other *nixes and Windows through MinGW.
 
 # QUICK START
+
+Install discount from source or using your package manager.
+
 Clone this repository and enter it:
 
 ```
 git clone https://github.com/sakhmatd/swege
 cd swege
 ```
+
+If you wish to enable experimental multithreading support,
+set ``THREADS = true`` in ``makefile``.
 
 Compile and install swege:
 
@@ -66,7 +72,7 @@ Q: **How does swege determine the title of my webpage?**
    The example site uses both methods. 
 
 # LICENSE
-Copyright 2022 Sergei Akhmatdinov
+Copyright 2023 Sergei Akhmatdinov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 You may obtain a copy of the License at
