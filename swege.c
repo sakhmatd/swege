@@ -395,8 +395,10 @@ find_files(const char *src_path)
 #ifdef THREADS
 			/* Just recur as normal if no threads available
 			 * so as to not hold execution */
-			if (threads == NUMTHREADS)
+			if (threads == NUMTHREADS) {
 				find_files(path);
+				continue;
+			}
 
 			char *newpath = malloc(sizeof(char) * PATH_MAX);
 			strncpy(newpath, path, PATH_MAX);
