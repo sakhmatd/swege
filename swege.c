@@ -29,7 +29,7 @@
 
 #include <mkdio.h>
 
-/* For copy_file() */
+/* For copy_file() on Apple */
 #ifdef __APPLE__
 #include <copyfile.h>
 #elif defined(__linux__)
