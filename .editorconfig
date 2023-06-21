@@ -1,0 +1,15 @@
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+
+# Tab indentation (no size specified)
+[Makefile]
+indent_style = tab
+
+# Normal C and HDL stuff
+[{*.c,*.h,*.cpp,*.hpp,*.v,*.vh,*.vhd}]
+indent_style = tab
+indent_size = 8
+
