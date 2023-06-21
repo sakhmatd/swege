@@ -99,6 +99,7 @@ static void destroy_config(Config * cfg);
 
 /* Global variables */
 #ifdef THREADS
+pthread_mutex_t files_procd_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_t thread_ids[NUMTHREADS];
 unsigned threads = 0;
 #endif
@@ -184,7 +185,13 @@ copy_file(const char *path, const char *new_path)
 
 	close(orig);
 	close(new);
+#ifdef THREADS
+	pthread_mutex_lock(&files_procd_mutex);
 	files_procd++;
+	pthread_mutex_unlock(&files_procd_mutex);
+#else
+	files_procd++;
+#endif
 	return ret;
 }
 
@@ -200,7 +207,13 @@ make_dir(const char *path)
 	mode_t default_mode = umask(0);
 	mkdir(path, 0755);
 	umask(default_mode);
+#ifdef THREADS
+	pthread_mutex_lock(&files_procd_mutex);
 	files_procd++;
+	pthread_mutex_unlock(&files_procd_mutex);
+#else
+	files_procd++;
+#endif
 }
 
 long
@@ -473,7 +486,13 @@ render_md(char *path)
 	/* Append the footer */
 	stream_to_file(config.footer_file, path);
 
+#ifdef THREADS
+	pthread_mutex_lock(&files_procd_mutex);
 	files_procd++;
+	pthread_mutex_unlock(&files_procd_mutex);
+#else
+	files_procd++;
+#endif
 }
 
 /*
