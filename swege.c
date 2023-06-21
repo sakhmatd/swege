@@ -346,6 +346,7 @@ find_files_thread(void *path)
 {
 	find_files((char *)path);
 	free(path);
+	threads--;
 	return 0;
 }
 #endif
@@ -394,12 +395,16 @@ find_files(const char *src_path)
 			}
 
 #ifdef THREADS
+			/* Just recur as normal if no threads available
+			 * so as to not hold execution */
+			if (threads == NUMTHREADS)
+				find_files(path);
+
 			char *newpath = malloc(sizeof(char) * PATH_MAX);
 			strncpy(newpath, path, PATH_MAX);
+
 			pthread_create(&thread_ids[threads++], NULL,
 				       find_files_thread, newpath);
-			printf("Threads: %d\n", threads);
-			continue;
 #else
 			find_files(path);
 #endif
