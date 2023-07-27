@@ -63,7 +63,7 @@ Q: **How does swege determine the title of my webpage?**
 *  swege reads the first line of your .md file to determine the title.
    If your page begins with a main heading, swege will use the heading
    as the title:
-   
+
    `# This will serve as the title`
 
    If you want to have a title different from your main heading or
@@ -71,7 +71,7 @@ Q: **How does swege determine the title of my webpage?**
 
    `title: This will serve as the title`
 
-   The example site uses both methods. 
+   The example site uses both methods.
 
 # LICENSE
 Copyright 2023 Sergei Akhmatdinov
@@ -90,7 +90,7 @@ limitations under the License.
 # CREDITS
 Many thanks to David Parsons for the Discount library.
 
-Thanks to [@unInstance](https://github.com/unInstance) for several 
+Thanks to [@unInstance](https://github.com/unInstance) for several
 contributions.
 
 # BUGS/TODO
