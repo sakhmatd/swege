@@ -19,7 +19,7 @@ Install discount from source or using your package manager.
 
 Clone this repository and enter it:
 
-```
+```bash
 git clone https://github.com/sakhmatd/swege
 cd swege
 ```
@@ -29,18 +29,20 @@ set ``THREADS = true`` in ``makefile``.
 
 Compile and install swege:
 
-```
+```bash
 make
 sudo make install
 ```
 
 Copy the example directory to a location of choice:
 
-`cp -r example ~/mycoolsite`
+```bash
+cp -r example ~/mycoolsite
+```
 
 Enter your directory, edit swege.cfg and run swege:
 
-```
+```bash
 cd ~/mycoolsite
 $EDITOR swege.cfg
 swege
