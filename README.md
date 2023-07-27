@@ -93,7 +93,7 @@ limitations under the License.
 
 Many thanks to David Parsons for the Discount library.
 
-Thanks to [@unInstance](https://github.com/unInstance) for several
+Thanks to [Ivan Kovmir](https://github.com/kovmir) for several
 contributions.
 
 # BUGS/TODO
