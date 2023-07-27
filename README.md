@@ -6,6 +6,7 @@ It leverages the [discount](http://www.pell.portland.or.us/~orc/Code/discount/)
 library for generating a website from a set of Markdown files.
 
 # FEATURES
+
 * Under 500 lines of C!
 * Incremental updates!
 * Pretty fast!
@@ -19,7 +20,7 @@ Install discount from source or using your package manager.
 
 Clone this repository and enter it:
 
-```
+```bash
 git clone https://github.com/sakhmatd/swege
 cd swege
 ```
@@ -29,18 +30,20 @@ set ``THREADS = true`` in ``makefile``.
 
 Compile and install swege:
 
-```
+```bash
 make
 sudo make install
 ```
 
 Copy the example directory to a location of choice:
 
-`cp -r example ~/mycoolsite`
+```bash
+cp -r example ~/mycoolsite
+```
 
 Enter your directory, edit swege.cfg and run swege:
 
-```
+```bash
 cd ~/mycoolsite
 $EDITOR swege.cfg
 swege
@@ -61,7 +64,7 @@ Q: **How does swege determine the title of my webpage?**
 *  swege reads the first line of your .md file to determine the title.
    If your page begins with a main heading, swege will use the heading
    as the title:
-   
+
    `# This will serve as the title`
 
    If you want to have a title different from your main heading or
@@ -69,9 +72,10 @@ Q: **How does swege determine the title of my webpage?**
 
    `title: This will serve as the title`
 
-   The example site uses both methods. 
+   The example site uses both methods.
 
 # LICENSE
+
 Copyright 2023 Sergei Akhmatdinov
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -86,16 +90,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 # CREDITS
+
 Many thanks to David Parsons for the Discount library.
 
-Thanks to [@unInstance](https://github.com/unInstance) for several 
+Thanks to [Ivan Kovmir](https://github.com/kovmir) for several
 contributions.
 
 # BUGS/TODO
+
 * Better documentation.
 * Windows support?
 
 # CONTRIBUTING
+
 Contributions are welcome no matter who you are and where you come from.
 
 When submitting PRs, please maintain the [coding style](https://suckless.org/coding_style/)

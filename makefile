@@ -2,6 +2,8 @@
 THREADS = false
 
 CC ?= cc
+INSTALL ?= install
+STRIP ?= strip
 
 CFLAGS  = -std=c99
 CFLAGS += -pedantic
@@ -27,10 +29,10 @@ endif
 PROJECT = swege
 
 all:
-	$(CC) $(CFLAGS) -O3 $(INCLUDES) $(LIB_PATH) *.c -o $(PROJECT) $(LIBS)
+	$(CC) $(CFLAGS) -O3 $(INCLUDES) $(LIB_PATH) $(PROJECT).c -o $(PROJECT) $(LIBS)
 
-debug: 
-	$(CC) $(CFLAGS) -g $(INCLUDES) $(LIB_PATH) *.c -o $(PROJECT) $(LIBS)
+debug:
+	$(CC) $(CFLAGS) -g $(INCLUDES) $(LIB_PATH) $(PROJECT).c -o $(PROJECT) $(LIBS)
 
 gdb: debug
 	gdb $(PROJECT)
@@ -45,16 +47,19 @@ memcheck_full: debug
 	valgrind --leak-check=full --show-leak-kinds=debug ./$(PROJECT)
 
 clean:
-	rm $(PROJECT)
+	rm -f ./$(PROJECT)
 
 install:
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	install $(PROJECT) $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
+	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
+	$(INSTALL) $(PROJECT) "$(DESTDIR)$(PREFIX)/bin/$(PROJECT)"
 
 uninstall:
-	rm $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
+	rm -f "$(DESTDIR)$(PREFIX)/bin/$(PROJECT)"
+
+strip:
+	$(STRIP) ./$(PROJECT)
 
 site:
 	./$(PROJECT)
 
-.PHONY: all debug gdb memcheck memcheck_v memcheck_full clean install uninstall site
+.PHONY: all debug gdb memcheck memcheck_v memcheck_full clean install uninstall strip site
