@@ -1,5 +1,5 @@
 # Set to true to enable experimental multithreading
-THREADS = false
+THREADS ?= false
 
 CC ?= cc
 
