@@ -30,6 +30,8 @@ set ``THREADS = true`` in ``makefile``.
 
 Compile and install swege:
 
+```Note: If building on BSD, use `gmake` in place of `make` below.```
+
 ```bash
 make
 sudo make install
@@ -93,7 +95,7 @@ limitations under the License.
 
 Many thanks to David Parsons for the Discount library.
 
-Thanks to [Ivan Kovmir](https://github.com/kovmir) for several
+Thanks to [Ivan Kovmir](https://github.com/kovmir) for packaging and continuous
 contributions.
 
 # BUGS/TODO
