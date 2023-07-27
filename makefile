@@ -48,11 +48,11 @@ clean:
 	rm $(PROJECT)
 
 install:
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	install $(PROJECT) $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
+	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
+	install $(PROJECT) "$(DESTDIR)$(PREFIX)/bin/$(PROJECT)"
 
 uninstall:
-	rm $(DESTDIR)$(PREFIX)/bin/$(PROJECT)
+	rm "$(DESTDIR)$(PREFIX)/bin/$(PROJECT)"
 
 site:
 	./$(PROJECT)
