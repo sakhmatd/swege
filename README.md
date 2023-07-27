@@ -6,6 +6,7 @@ It leverages the [discount](http://www.pell.portland.or.us/~orc/Code/discount/)
 library for generating a website from a set of Markdown files.
 
 # FEATURES
+
 * Under 500 lines of C!
 * Incremental updates!
 * Pretty fast!
@@ -74,6 +75,7 @@ Q: **How does swege determine the title of my webpage?**
    The example site uses both methods.
 
 # LICENSE
+
 Copyright 2023 Sergei Akhmatdinov
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,16 +90,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 # CREDITS
+
 Many thanks to David Parsons for the Discount library.
 
 Thanks to [@unInstance](https://github.com/unInstance) for several
 contributions.
 
 # BUGS/TODO
+
 * Better documentation.
 * Windows support?
 
 # CONTRIBUTING
+
 Contributions are welcome no matter who you are and where you come from.
 
 When submitting PRs, please maintain the [coding style](https://suckless.org/coding_style/)
