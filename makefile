@@ -29,7 +29,7 @@ PROJECT = swege
 all:
 	$(CC) $(CFLAGS) -O3 $(INCLUDES) $(LIB_PATH) $(PROJECT).c -o $(PROJECT) $(LIBS)
 
-debug: 
+debug:
 	$(CC) $(CFLAGS) -g $(INCLUDES) $(LIB_PATH) $(PROJECT).c -o $(PROJECT) $(LIBS)
 
 gdb: debug
