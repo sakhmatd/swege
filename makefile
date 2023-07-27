@@ -45,7 +45,7 @@ memcheck_full: debug
 	valgrind --leak-check=full --show-leak-kinds=debug ./$(PROJECT)
 
 clean:
-	rm -f $(PROJECT)
+	rm -f ./$(PROJECT)
 
 install:
 	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
