@@ -3,6 +3,7 @@ THREADS ?= false
 
 CC ?= cc
 INSTALL ?= install
+STRIP ?= strip
 
 CFLAGS  = -std=c99
 CFLAGS += -pedantic
@@ -55,7 +56,10 @@ install:
 uninstall:
 	rm -f "$(DESTDIR)$(PREFIX)/bin/$(PROJECT)"
 
+strip:
+	$(STRIP) ./$(PROJECT)
+
 site:
 	./$(PROJECT)
 
-.PHONY: all debug gdb memcheck memcheck_v memcheck_full clean install uninstall site
+.PHONY: all debug gdb memcheck memcheck_v memcheck_full clean install uninstall strip site
