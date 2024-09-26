@@ -74,7 +74,8 @@ Q: **How does swege determine the title of my webpage?**
 
    `title: This will serve as the title`
 
-   The example site uses both methods.
+   The example site uses both methods. Leave the first line empty to remove the
+   title.
 
 # LICENSE
 
