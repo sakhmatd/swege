@@ -298,6 +298,7 @@ char *
 get_title(FILE * in)
 {
 	char *line = NULL;
+	int n_hashes;
 	size_t linecap = 0;
 	getline(&line, &linecap, in);
 
@@ -321,8 +322,11 @@ get_title(FILE * in)
 			}
 		}
 	} else if (strlen(line) >= 3 && line[0] == '#') {
+		/* Count the amount of '#' characters. */
+		for (n_hashes = 1; line[n_hashes] == '#'; n_hashes++)
+			;
 		/* Copy line without the '#' and ' ' immediately after it. */
-		strncpy(ret, strrchr(line, '#') + 1, (TITLE_SIZE + 1));
+		strncpy(ret, line + n_hashes + 1, (TITLE_SIZE + 1));
 		ret[TITLE_SIZE] = '\0';	/* Ensure termination */
 
 		rewind(in);	/* Leave H1 in place for rendering */
