@@ -503,33 +503,33 @@ int
 read_config(const char *path)
 {
 	char buf[BUF_CONF];	/* To read config lines into, for fgets(). */
-	char *tok;	/* To keep track of the delimiter, for strtok(). */
+	char *delim;	/* To keep track of the delimiter, for strtok(). */
 	FILE *config_fp;
 	config_fp = fopen(path, "r");
 	if (!config_fp)
 		PrintErr(path);
 
 	while (fgets(buf, BUF_CONF, config_fp)) {
-		tok = strtok(buf, CFGDLIM);
-		if (!strcmp("title", tok)) {
+		delim = strtok(buf, CFGDLIM);
+		if (!strcmp("title", delim)) {
 			config.site_title =
 				strdup(strtok(NULL, CFGDLIM "\n"));
 			continue;
 		}
-		if (!strcmp("source", tok)) {
+		if (!strcmp("source", delim)) {
 			config.src_dir = strdup(strtok(NULL, CFGDLIM "\n"));
 			continue;
 		}
-		if (!strcmp("destination", tok)) {
+		if (!strcmp("destination", delim)) {
 			config.dst_dir = strdup(strtok(NULL, CFGDLIM "\n"));
 			continue;
 		}
-		if (!strcmp("header", tok)) {
+		if (!strcmp("header", delim)) {
 			config.header_file =
 				strdup(strtok(NULL, CFGDLIM "\n"));
 			continue;
 		}
-		if (!strcmp("footer", tok)) {
+		if (!strcmp("footer", delim)) {
 			config.footer_file =
 				strdup(strtok(NULL, CFGDLIM "\n"));
 			continue;
