@@ -51,12 +51,12 @@
 
 #define MANIFESTF ".manifest"
 
-#define CFGFILE "swege.cfg"	/* Config file name. */
-#define CFGDLIM ":"	/* Config file option-value delimiter. */
+#define CFG_FILE "swege.cfg"	/* Config file name. */
+#define CFG_DELIM ":"	/* Config file option-value delimiter. */
 
 #define FORCE_UPDATE                                                           \
   (file_is_newer(config.footer_file) || file_is_newer(config.header_file) ||   \
-   file_is_newer(CFGFILE))
+   file_is_newer(CFG_FILE))
 
 #define PrintErr(path)                                                         \
   do {                                                                         \
@@ -510,28 +510,28 @@ read_config(const char *path)
 		PrintErr(path);
 
 	while (fgets(buf, BUF_CONF, config_fp)) {
-		delim = strtok(buf, CFGDLIM);
+		delim = strtok(buf, CFG_DELIM);
 		if (!strcmp("title", delim)) {
 			config.site_title =
-				strdup(strtok(NULL, CFGDLIM "\n"));
+				strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
 		if (!strcmp("source", delim)) {
-			config.src_dir = strdup(strtok(NULL, CFGDLIM "\n"));
+			config.src_dir = strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
 		if (!strcmp("destination", delim)) {
-			config.dst_dir = strdup(strtok(NULL, CFGDLIM "\n"));
+			config.dst_dir = strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
 		if (!strcmp("header", delim)) {
 			config.header_file =
-				strdup(strtok(NULL, CFGDLIM "\n"));
+				strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
 		if (!strcmp("footer", delim)) {
 			config.footer_file =
-				strdup(strtok(NULL, CFGDLIM "\n"));
+				strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
 		/* Ignore unknown entries. */
@@ -568,8 +568,8 @@ main(int argc, char *argv[])
 			usage();
 	}
 
-	if (!read_config(CFGFILE)) {
-		printf("Invalid " CFGFILE "\n");
+	if (!read_config(CFG_FILE)) {
+		printf("Invalid " CFG_FILE "\n");
 		return 1;
 	}
 
