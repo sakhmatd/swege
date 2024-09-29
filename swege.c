@@ -51,12 +51,12 @@
 
 #define MANIFESTF ".manifest"
 
-#define CFGFILE "swege.cfg"	/* Config file name. */
-#define CFGDLIM ":"	/* Config file option-value delimiter. */
+#define CFG_FILE "swege.cfg"	/* Config file name. */
+#define CFG_DELIM ":"	/* Config file option-value delimiter. */
 
 #define FORCE_UPDATE                                                           \
   (file_is_newer(config.footer_file) || file_is_newer(config.header_file) ||   \
-   file_is_newer(CFGFILE))
+   file_is_newer(CFG_FILE))
 
 #define PrintErr(path)                                                         \
   do {                                                                         \
@@ -507,35 +507,35 @@ int
 read_config(const char *path)
 {
 	char buf[BUF_CONF];	/* To read config lines into, for fgets(). */
-	char *tok;	/* To keep track of the delimiter, for strtok(). */
+	char *delim;	/* To keep track of the delimiter, for strtok(). */
 	FILE *config_fp;
 	config_fp = fopen(path, "r");
 	if (!config_fp)
 		PrintErr(path);
 
 	while (fgets(buf, BUF_CONF, config_fp)) {
-		tok = strtok(buf, CFGDLIM);
-		if (!strcmp("title", tok)) {
+		delim = strtok(buf, CFG_DELIM);
+		if (!strcmp("title", delim)) {
 			config.site_title =
-				strdup(strtok(NULL, CFGDLIM "\n"));
+				strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
-		if (!strcmp("source", tok)) {
-			config.src_dir = strdup(strtok(NULL, CFGDLIM "\n"));
+		if (!strcmp("source", delim)) {
+			config.src_dir = strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
-		if (!strcmp("destination", tok)) {
-			config.dst_dir = strdup(strtok(NULL, CFGDLIM "\n"));
+		if (!strcmp("destination", delim)) {
+			config.dst_dir = strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
-		if (!strcmp("header", tok)) {
+		if (!strcmp("header", delim)) {
 			config.header_file =
-				strdup(strtok(NULL, CFGDLIM "\n"));
+				strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
-		if (!strcmp("footer", tok)) {
+		if (!strcmp("footer", delim)) {
 			config.footer_file =
-				strdup(strtok(NULL, CFGDLIM "\n"));
+				strdup(strtok(NULL, CFG_DELIM "\n"));
 			continue;
 		}
 		/* Ignore unknown entries. */
@@ -572,8 +572,8 @@ main(int argc, char *argv[])
 			usage();
 	}
 
-	if (!read_config(CFGFILE)) {
-		printf("Invalid " CFGFILE "\n");
+	if (!read_config(CFG_FILE)) {
+		printf("Invalid " CFG_FILE "\n");
 		return 1;
 	}
 
