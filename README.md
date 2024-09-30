@@ -79,7 +79,7 @@ Q: **How does swege determine the title of my webpage?**
 
 # LICENSE
 
-Copyright 2023 Sergei Akhmatdinov
+Copyright 2024 Sergei Akhmatdinov
 
 Licensed under the Apache License, Version 2.0 (the "License");
 You may obtain a copy of the License at
