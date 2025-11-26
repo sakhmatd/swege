@@ -75,6 +75,15 @@ typedef struct {
 	char *footer_file;
 } Config;
 
+typedef enum {
+	S_INV,
+	S_TIT,
+	S_SRC,
+	S_DST,
+	S_HDR,
+	S_FTR
+} ConfigField;
+
 /* Prototypes */
 static void usage(void);
 
@@ -94,6 +103,7 @@ static char *mk_dst_path(const char *path);
 
 static void find_files(const char *src_path);
 static void render_md(char *path);
+static ConfigField validate_config_field(const char *delim);
 static int read_config(const char *path);
 static void destroy_config(Config * cfg);
 
@@ -113,7 +123,7 @@ static Config config;
 void
 usage(void)
 {
-	char *usage_str = "swege 2.0.0\n"
+	char *usage_str = "swege 2.2.0\n"
 		"Please see https://github.com/sakhmatd/swege"
 		" for more detailed usage instructions.\n";
 	fprintf(stderr, "%s", usage_str);
@@ -289,6 +299,7 @@ cmp_ext(const char *dname, const char *ext)
 	return !(strcmp(ext, fext));
 }
 
+
 /**
  * Grabs the first line of the md file.
  * Extract the title if explicitly given or use the first H1 found as the title.
@@ -319,7 +330,7 @@ get_title(FILE * in)
 				strncat(ret, piece,
 					(TITLE_SIZE - strlen(ret)));
 				strncat(ret, " ", (TITLE_SIZE - strlen(ret)));
-			}
+}
 		}
 	} else if (strlen(line) >= 3 && line[0] == '#') {
 		/* Count the amount of '#' characters. */
@@ -472,10 +483,10 @@ render_md(char *path)
 	stream_to_file(config.header_file, path);
 
 	char *page_title = get_title(fd);
-	if (page_title) {
+	if (page_title && config.site_title) {
 		fprintf(out, "<title>%s - %s</title>\n", page_title,
 			config.site_title);
-	} else {
+	} else if (config.site_title) {
 		fprintf(out, "<title>%s</title>\n", config.site_title);
 	}
 
@@ -500,6 +511,27 @@ render_md(char *path)
 }
 
 /*
+ * Ensure that a config field is valid.
+ * Returns a corresponding ConfigField if it is
+ * or S_INV otherwise
+ */
+ConfigField
+validate_config_field(const char *delim)
+{
+	if (!strcmp("title", delim))
+		return S_TIT;
+	else if (!strcmp("source", delim))
+		return S_SRC;
+	else if (!strcmp("destination", delim))
+		return S_DST;
+	else if (!strcmp("header", delim))
+		return S_HDR;
+	else if (!strcmp("footer", delim))
+		return S_FTR;
+	return S_INV;
+}
+
+/*
  * Parses 'swege.cfg' config file.
  * Returns 1 if everything goes well, and 0 otherwise.
  */
@@ -508,6 +540,7 @@ read_config(const char *path)
 {
 	char buf[BUF_CONF];	/* To read config lines into, for fgets(). */
 	char *delim;	/* To keep track of the delimiter, for strtok(). */
+	char *token;    /* Fetched token */
 	FILE *config_fp;
 	config_fp = fopen(path, "r");
 	if (!config_fp)
@@ -515,38 +548,51 @@ read_config(const char *path)
 
 	while (fgets(buf, BUF_CONF, config_fp)) {
 		delim = strtok(buf, CFG_DELIM);
-		if (!strcmp("title", delim)) {
-			config.site_title =
-				strdup(strtok(NULL, CFG_DELIM "\n"));
-			continue;
+		ConfigField field = validate_config_field(delim);
+		if (field == S_INV)
+			goto CLEANUP;
+
+		token = strtok(NULL, CFG_DELIM "\n");
+		switch (field) {
+			case S_TIT:
+				if (token)
+				config.site_title =
+				strndup(token, TITLE_SIZE);
+				break;
+			case S_SRC:
+				if (token)
+				config.src_dir =
+				strndup(token, BUF_CONF);
+				break;
+			case S_DST:
+				if (token)
+				config.dst_dir = 
+				strndup(token, BUF_CONF);
+				break;
+			case S_HDR:
+				if (token)
+				config.header_file =
+				strndup(token, BUF_CONF);
+				break;
+			case S_FTR:
+				if (token)
+				config.footer_file =
+				strndup(token, BUF_CONF);
+				break;
+			default:
+				/* UNREACHABLE */
+				break;
 		}
-		if (!strcmp("source", delim)) {
-			config.src_dir = strdup(strtok(NULL, CFG_DELIM "\n"));
-			continue;
-		}
-		if (!strcmp("destination", delim)) {
-			config.dst_dir = strdup(strtok(NULL, CFG_DELIM "\n"));
-			continue;
-		}
-		if (!strcmp("header", delim)) {
-			config.header_file =
-				strdup(strtok(NULL, CFG_DELIM "\n"));
-			continue;
-		}
-		if (!strcmp("footer", delim)) {
-			config.footer_file =
-				strdup(strtok(NULL, CFG_DELIM "\n"));
-			continue;
-		}
-		/* Ignore unknown entries. */
 	}
 	fclose(config_fp);
 
 	/* Check whether all options have been found/assigned. */
-	if (config.site_title && config.src_dir && config.dst_dir &&
+	/* Allow empty site title */
+	if (config.src_dir && config.dst_dir &&
 	    config.header_file && config.footer_file) {
 		return 1;
 	} else {
+CLEANUP:
 		destroy_config(&config);
 		return 0;
 	}
@@ -555,11 +601,16 @@ read_config(const char *path)
 void
 destroy_config(Config * cfg)
 {
-	free(cfg->site_title);
-	free(cfg->src_dir);
-	free(cfg->dst_dir);
-	free(cfg->header_file);
-	free(cfg->footer_file);
+	if (cfg->site_title)
+		free(cfg->site_title);
+	if (cfg->src_dir)
+		free(cfg->src_dir);
+	if (cfg->dst_dir)
+		free(cfg->dst_dir);
+	if (cfg->header_file)
+		free(cfg->header_file);
+	if (cfg->footer_file)
+		free(cfg->footer_file);
 }
 
 int
